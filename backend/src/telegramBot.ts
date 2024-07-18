@@ -4,9 +4,10 @@ import User from './user/models/User';
 import 'dotenv/config';
 import buyTickets from './buyTickets';
 import EventModel from './event/models/Event';
+import cron from 'node-cron';
 
 // CHANGE TOKEN IF YOU DEPLOY
-const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN_DEV || '';
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN_DEV2 || '';
 if (!TELEGRAM_TOKEN) {
   throw new Error('TELEGRAM_TOKEN is not set');
 }
@@ -58,29 +59,37 @@ bot.onText(/\/start/, async (msg) => {
       await bot.sendMessage(chatId, welcomeMessage);
 
       try {
-        bot.sendMessage(chatId, 'Готовим для Вас рекомендации...');
-        const CHUNK_SIZE = 10;
+        await bot.sendMessage(chatId, 'Мы готовим для вас первые рекомендации. Это может занять несколько минут...');
+
         const events = await EventModel.find();
+        const CHUNK_SIZE = 10;
         const eventChunks = getEventChunks(events, CHUNK_SIZE);
-        const userRecomendation: { venue: string; ticketLink: string; message: string; }[] = [];
-    
+        const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
+
         user.lastRecommendationIndex = 0;
-      
-        for (const chunk of eventChunks) {
+
+        for (let i = 0; i < eventChunks.length; i++) {
+          const chunk = eventChunks[i];
           const userSession = await User.findOne({ chatId });
           if (userSession?.stopSession) {
             return;
           }
+
           const recommendations = await getRecommendations(chunk, user);
           userRecomendation.push(...recommendations);
-          console.log("USERRECOMMENDATIONS",userRecomendation);
-          
-          user.recommendations = userRecomendation;
-          console.log('DB RECOMEN', user.recommendations);
-          await user.save();
-          await sendNextEvent(chatId); 
+
+          console.log("USERRECOMMENDATIONS", userRecomendation);
         }
-        
+
+        user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
+        console.log('DB RECOMMENDATIONS', user.recommendations);
+        await user.save();
+
+        await bot.sendMessage(chatId, 'Мы завершили подготовку ваших рекомендаций.');
+
+        // Отправляем первый ивент
+        await sendNextEvent(chatId);
+
       } catch (error) {
         console.error(`Ошибка при получении рекомендаций для chatId ${chatId}:`, error);
         await bot.sendMessage(chatId, 'Извините, произошла ошибка при получении рекомендаций.');
@@ -171,35 +180,43 @@ bot.on('message', async (msg) => {
 
   try {
     bot.sendMessage(chatId, 'Готовим для Вас рекомендации...');
-    const CHUNK_SIZE = 10;
     const events = await EventModel.find();
+    const CHUNK_SIZE = 10;
     const eventChunks = getEventChunks(events, CHUNK_SIZE);
-    const userRecomendation: { venue: string; ticketLink: string; message: string; }[] = [];
+    const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
 
     user.lastRecommendationIndex = 0;
-  
-    for (const chunk of eventChunks) {
+
+    for (let i = 0; i < eventChunks.length; i++) {
+      const chunk = eventChunks[i];
       const userSession = await User.findOne({ chatId });
       if (userSession?.stopSession) {
         return;
       }
+
       const recommendations = await getRecommendations(chunk, user);
       userRecomendation.push(...recommendations);
-      console.log("USERRECOMMENDATIONS",userRecomendation);
-      
-      user.recommendations = userRecomendation;
-      await sendNextEvent(chatId); 
+
+      console.log("USERRECOMMENDATIONS", userRecomendation);
     }
 
-    
+    user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
+    console.log('DB RECOMMENDATIONS', user.recommendations);
     await user.save();
+
+    await bot.sendMessage(chatId, 'Мы завершили подготовку ваших рекомендаций.');
+
+    // Отправляем первый ивент
+    await sendNextEvent(chatId);
+
   } catch (error) {
     console.error(`Ошибка при получении рекомендаций для chatId ${chatId}:`, error);
     await bot.sendMessage(chatId, 'Извините, произошла ошибка при получении рекомендаций.');
   }
 });
 
-const sendNextEvent = async (chatId) => {
+// Функция для отправки следующего ивента
+const sendNextEvent = async (chatId: number) => {
   const user = await User.findOne({ chatId });
 
   if (!user || !user.recommendations || user.recommendations.length === 0) {
@@ -262,6 +279,21 @@ bot.on('callback_query', async (callbackQuery) => {
   }
 
   bot.answerCallbackQuery(callbackQuery.id);
+});
+
+
+cron.schedule('0 */6 * * *', async () => {
+  console.log('Запуск планировщика для отправки рекомендаций пользователям');
+  try {
+    const users = await User.find();
+    for (const user of users) {
+      if (!user.stopSession) {
+        await sendNextEvent(Number(user.chatId));
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка при отправке плановых рекомендаций:', error);
+  }
 });
 
 export default bot;
