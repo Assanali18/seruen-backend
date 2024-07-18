@@ -1,0 +1,53 @@
+
+[
+  {
+    "title": "Стендап-концерт «Новые шутки» (26 июня)",
+    "date": "26.06.2024",
+    "description": "Опытные и перспективные комики будут проверять новые шутки. Шутки, которые вы услышите первыми! Ведь оттачивать материал и умение держать себя на сцене требует не малого времени. Приходите насладиться приятным вечером комедии и зарядиться энергией на всю оставшуюся неделю!    Правила стендап-клуба:            1. В заведении запрещено курить, в т.ч. любые электронные девайсы            2. Во время мероприятия разговариваем шепотом, чтобы в камерной атмосфере не отвлекать комика и других зрителей. Самому комику не выкрикиваем, если только он сам к вам не обратился.            3. Любой формат аудио- и видео-съёмки в клубе запрещен.      Возрастное ограничение: 18+",
+    "time": "21:30",
+    "venue": "Стендап клуб Almaty Central Stand up club, ул. Кабанбай Батыра, 71",
+    "price": "3000 тенге",
+    "ticketLink": "https://sxodim.com/almaty/central-standup-almaty/stendap-koncert-novye-shutki-26-iyunya/tickets",
+    "reason": "This event fits your schedule on Saturday after 4 PM and has a reasonable price for a programmer with a salary of 3000. It's also a popular event for people interested in comedy and entertainment."
+  },
+  {
+    "title": "Стендап-концерт Weekend show (29 июня)",
+    "date": "29.06.2024",
+    "description": "Weekend show - главный стендап-концерт недели состоится уже в разгар выходных!            Мощный состав комиков, где каждый с большим опытом, медийным бэкграундом и лучшим материалом. Те, кто был у нас на шоу, хотят попасть туда снова. Настолько круто оно проходит!                     Правила стендап-клуба:            1. В заведении запрещено курить, в т.ч. любые электронные девайсы            2. Во время мероприятия разговариваем шепотом, чтобы в камерной атмосфере не отвлекать комика и других зрителей. Самому комику не выкрикиваем, если только он сам к вам не обратился.            3. Любой формат аудио- и видео-съёмки в клубе запрещён.      Возрастное ограничение: 18+",
+    "time": "21:00",
+    "venue": "Стендап клуб Almaty Central Stand up club, ул. Кабанбай Батыра, 71",
+    "price": "от 5000 тенге",
+    "ticketLink": "https://sxodim.com/almaty/central-standup-almaty/stendap-koncert-weekend-show-29-iyunya/tickets",
+    "reason": "This event also aligns with your Saturday schedule and offers a high-quality stand-up experience from experienced comedians. It's a bit more expensive, but might be worth it for a memorable evening."
+  },
+  {
+    "title": "Тайный сольный стендап-концерт (29 июня)",
+    "date": "29.06.2024",
+    "description": "Тайный сольный стендап-концерт одного из талантливых комиков. Чей же концерт? Приходите и интрига будет раскрыта.                 Этот комик точно вас удивит! Он выступит для вас с лучшим материалом. Вас ждет незабываемый вечер комедии в компании с незабываемым комиком!           Правила стендап-клуба:          1. В заведении запрещено курить, в т.ч. любые электронные девайсы          2. Во время мероприятия разговариваем шепотом, чтобы в камерной атмосфере не отвлекать комика и других зрителей. Самому комику не выкрикиваем, если только он сам к вам не обратился.          3. Любой формат аудио- и видео-съёмки в клубе запрещен.    Возрастное ограничение: 18+",
+    "time": "19:00",
+    "venue": "Стендап клуб Almaty Central Stand up club, ул. Кабанбай Батыра, 71",
+    "price": "3000 тенге",
+    "ticketLink": "https://sxodim.com/almaty/central-standup-almaty/taynyy-solnyy-stendap-koncert-29-iyunya/tickets",
+    "reason": "This event adds an element of surprise and mystery, making it a potentially fun and engaging experience on your Saturday. The affordable price is also a plus."
+  },
+  {
+    "title": "Проверочный стендап-концерт Руслана Тай (30 июня)",
+    "date": "30.06.2024",
+    "description": "Руслан Тай представит публике свой проверочный сольный стендап-концерт! Вас ждет обсуждение актуальных тем, неотразимая харизма и отличное исполнение от опытного комика, несколько лет отрабатывавшего свой материал. Его юмор и манера подачи не оставят вас равнодушными. В его монологах каждый найдет что-то лично для себя. Приходите на концерт, вы всё сами поймете!    Правила стендап-клуба:          1. В заведении запрещено курить, в т.ч. любые электронные девайсы          2. Во время мероприятия разговариваем шепотом, чтобы в камерной атмосфере не отвлекать комика и других зрителей. Самому комику не выкрикиваем, если только он сам к вам не обратился.          3. Любой формат аудио- и видео-съёмки в клубе запрещен.    Возрастное ограничение: 18+",
+    "time": "19:00",
+    "venue": "Стендап клуб Almaty Central Stand up club, ул. Кабанбай Батыра, 71",
+    "price": "5000 тенге",
+    "ticketLink": "https://sxodim.com/almaty/central-standup-almaty/proverochnyy-stendap-koncert-ruslana-tay-30-iyunya/tickets",
+    "reason": "This event is on Thursday after 4 PM, fitting your schedule, and features a well-known comedian with a good reputation for stand-up. It's a bit more expensive, but could offer a memorable performance."
+  },
+  {
+    "title": "Стендап – Свежие шутки (by Stand Up Camp)",
+    "date": "26.06.2024",
+    "description": "Новые шутки от опытных комиков Алматы!    Проведите этот вечер в компании стендап комиков! В заведении можно заказать вкусные блюда и напитки!  А самое главное — опытные комики расскажут свои новые шутки. Гарантируем — будет смешно!    Сбор гостей: 20:00  Начало: в 21:00    Тел. для дополнительных вопросов +7 (705) 890-11-27 (Ватсап, Телеграмм)",
+    "time": "21:00",
+    "venue": "Munchen, пр. Сейфуллина, 526",
+    "price": "3000 тенге",
+    "ticketLink": "https://sxodim.com/almaty/sobytiya-ot-stand-up-camp/stendap-svezhie-shutki-by-stand-up-camp-12/tickets",
+    "reason": "This event is another option for your Saturday evening with a reasonable price and a promise of fresh jokes from experienced comedians. It's a good choice for a fun and affordable night out."
+  }
+]
