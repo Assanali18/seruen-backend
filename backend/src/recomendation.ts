@@ -47,7 +47,7 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
       {
         "venue": "Almaty Arena, мкр. Нуркент, 7",
         "ticketLink": "https://sxodim.com/almaty/kontserty/solnyy-koncert-jony/tickets",
-        "message": "🔥 Готовы погрузиться в мир эмоций и драйва? 🔥\n\nСольный концерт JONY уже совсем скоро! 🎉\n\n🗓️ 22.09.2024\n💰 20000 тг\n**⏰ 20:00\n📍 Almaty Arena, мкр. Нуркент, 7\n\n🎤 JONY исполнит свои самые популярные хиты, заставит вас петь и танцевать всю ночь напролет!\n\n🎫 Билеты уже в продаже: "https://sxodim.com/almaty/kontserty/solnyy-koncert-jony/tickets" \n\nНе пропустите это незабываемое событие! 💥"
+        "message": "🔥 Готовы погрузиться в мир эмоций и драйва? 🔥\\n\\nСольный концерт JONY уже совсем скоро! 🎉\\n\\n🗓️ 22.09.2024\\n💰 20000 тг\\n**⏰ 20:00\\n📍 Almaty Arena, мкр. Нуркент, 7\\n\\n🎤 JONY исполнит свои самые популярные хиты, заставит вас петь и танцевать всю ночь напролет!\\n\\n🎫 Билеты уже в продаже: https://sxodim.com/almaty/kontserty/solnyy-koncert-jony/tickets \\n\\nНе пропустите это незабываемое событие! 💥"
       }
     ]
   `;
@@ -71,9 +71,9 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
       if (char === '\n' || char === '\t') {
         return char;
       }
-      return '';
+      return ' ';
     });
-    responseText = responseText.replace(/\\n/g, '\\\\n').replace(/\\r/g, '\\\\r').replace(/\\t/g, '\\\\t');
+    responseText = responseText.replace(/\\n/g, '\\n').replace(/\\r/g, '\\r').replace(/\\t/g, '\\t');
 
     console.log('Clean Response:', responseText);
 
