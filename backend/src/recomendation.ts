@@ -17,17 +17,17 @@ export const getEventChunks = (events: Event[], chunkSize: number): Event[][] =>
   return chunks;
 };
 
-export const getRecommendations = async (chunk: Event[], userPreferences: { spendingLimit?: number; hobbies?: string[]; userName?: string; }): Promise<{ venue: string; ticketLink: string; message: string; score: number }[]> => {
+export const getRecommendations = async (chunk: Event[], userPreferences: { spendingLimit?: number; hobbies?: string[]; userName?: string; userPrompt?: string; }): Promise<{ venue: string; ticketLink: string; message: string; score: number }[]> => {
 
   chunk.forEach(event => {
     console.log("Title : ", event.title, "Price : ", event.price, "Date : ", event.date );
   });
 
-  const userPrompt = `
+  const systemPrompt = `
     I have provided chunk between 0 and 10 event.
     Please pay special attention to the user's hobbies and budget.
-    First, pay attention to popularity, that is, the most popular ones come first, more than 1000 are considered normal in popularity (no matter what budget). 
-    Then see if it fits according to preferences, if the event fits the user's preferences, then it fits (also the budget does not matter). 
+    First, pay attention to popularity, that is, the most popular ones come first, more than 1000 are considered normal in popularity also check other criteria. 
+    Then see if it fits according to preferences, if the event fits the user's preferences, then it fits, you can see this from tags. 
     Thirdly, look at the budget, it should not exceed the user's budget by more than 3,000 tenge
      Selection for preferences is equivalent to selection by quantity. Find the perfect balance between them.
     Select as many events as you see fit based on the given criteria.
@@ -61,7 +61,8 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: userPrompt },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPreferences.userPrompt || '' },
       ],
     });
 

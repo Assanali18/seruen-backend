@@ -7,4 +7,5 @@ export interface CreateEventDto {
     price?: string;
     ticketLink?: string;
     views?: number;
+    tags?: string[];
   }

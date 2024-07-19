@@ -17,6 +17,8 @@ export interface IUser extends Document {
   recommendations?: any[];
   lastRecommendationIndex?: number;
   stopSession: boolean;
+  generatedPosts?: any[];
+  lastGeneratedPostIndex?: number;
 }
 
 const UserSchema: Schema = new Schema({
@@ -29,7 +31,9 @@ const UserSchema: Schema = new Schema({
   chatId: { type: String },
   recommendations: [recommendationSchema],
   lastRecommendationIndex: { type: Number, default: 0 },
-  stopSession: { type: Boolean, default: false }
+  stopSession: { type: Boolean, default: false },
+  generatedPosts: [Schema.Types.Mixed],
+  lastGeneratedPostIndex: { type: Number, default: 0 },
 });
 
 export default mongoose.model<IUser>('User', UserSchema);

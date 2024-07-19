@@ -10,6 +10,7 @@ import globalRouter from './global-router';
 import connectDB from './db';
 import cors from 'cors';
 
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
