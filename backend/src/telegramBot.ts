@@ -7,12 +7,22 @@ import EventModel, { IEvent } from './event/models/Event';
 import cron from 'node-cron';
 import { OpenAI } from 'openai';
 import { Pinecone } from '@pinecone-database/pinecone';
+import { SpeechClient } from '@google-cloud/speech';
+import ffmpeg from 'fluent-ffmpeg';
+import fs from 'fs';
+import axios from 'axios';
+
 
 // CHANGE TOKEN IF YOU DEPLOY
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN_DEV || '';
 if (!TELEGRAM_TOKEN) {
   throw new Error('TELEGRAM_TOKEN is not set');
 }
+
+const speechClient = new SpeechClient({
+  keyFilename: process.env.GOOGLE_API_KEY,
+});
+
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 console.log('Telegram bot started');
@@ -43,15 +53,18 @@ const userSetupStages: { [chatId: string]: { stage: number, field?: string } } =
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
-  const userName = msg.from?.username || '';
-  const firstName = msg.from?.first_name || '';
+  const userName = msg.from?.username ||  '';
+  const firstName = msg.from?.first_name ||  '';
   console.log('username', userName);
 
-  if (userName) {
-    let user = await User.findOne({ userName });
+  // Генерация уникального идентификатора пользователя, если username отсутствует
+  const uniqueUserId = firstName ||  userName ||  `user_${chatId}`;
+
+  if (uniqueUserId) {
+    let user = await User.findOne({ userName: uniqueUserId });
     if (!user) {
       user = new User({
-        userName,
+        userName: uniqueUserId,
         chatId,
         recommendations: [],
         lastRecommendationIndex: 0,
@@ -417,4 +430,76 @@ const classifyAndEnhanceMessage = async (message: string): Promise<{ isRelated: 
   }
 };
 
+bot.on('voice', async (msg) => {
+  const chatId = msg.chat.id;
+  const fileId = msg.voice.file_id;
+
+  try {
+    const fileLink = await bot.getFileLink(fileId);
+    const audioPath = `./voice_${fileId}.ogg`;
+
+    // Скачиваем голосовое сообщение
+    const response = await axios({
+      method: 'get',
+      url: fileLink,
+      responseType: 'stream',
+    });
+
+    const writer = fs.createWriteStream(audioPath);
+    response.data.pipe(writer);
+
+    writer.on('finish', async () => {
+      // Конвертация OGG файла в FLAC для Google Speech-to-Text
+      const flacPath = audioPath.replace('.ogg', '.flac');
+      await convertOggToFlac(audioPath, flacPath);
+
+      const audio = fs.readFileSync(flacPath);
+      const audioBytes = audio.toString('base64');
+
+      const request = {
+        audio: { content: audioBytes },
+        config: {
+          encoding: 'FLAC' as const,
+          sampleRateHertz: 16000,
+          languageCode: 'ru-RU',
+        },
+      };
+
+      const [response] = await speechClient.recognize(request);
+
+      const transcription = response.results
+        ?.map(result => result.alternatives?.[0]?.transcript)
+        .join('\n');
+
+      // Отправляем распознанный текст в чат
+      await bot.sendMessage(chatId, `Распознанный текст: ${transcription}`);
+
+      // Удаляем временные файлы
+      fs.unlinkSync(audioPath);
+      fs.unlinkSync(flacPath);
+    });
+
+    writer.on('error', () => {
+      bot.sendMessage(chatId, 'Ошибка при загрузке голосового сообщения');
+    });
+  } catch (error) {
+    console.error('Error processing voice message:', error);
+    bot.sendMessage(chatId, 'Ошибка при обработке голосового сообщения');
+  }
+});
+
+async function convertOggToFlac(inputPath: string, outputPath: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    ffmpeg(inputPath)
+      .toFormat('flac')
+      .on('end', () => resolve())
+      .on('error', err => reject(err))
+      .save(outputPath);
+  });
+}
+
+
+
 export default bot;
+
+
