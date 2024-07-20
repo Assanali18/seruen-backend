@@ -157,6 +157,10 @@ bot.on('message', async (msg) => {
   const userText = msg.text;
   const user = await User.findOne({ chatId });
 
+  if (!user) {
+    await bot.sendMessage(chatId, 'Пожалуйста, сначала зарегистрируйтесь, используя команду /start.');
+    return;
+  }
 
   if (!(chatId in userSetupStages)) {
     try {
