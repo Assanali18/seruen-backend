@@ -17,7 +17,7 @@ class EventController {
             await EventModel.deleteMany({ source });
             console.log(`Events from source ${source} deleted`);
 
-            await deleteEventsFromPinecone();
+            await deleteEventsFromPinecone(source);
 
             const uniqueEvents = events.map(event => ({ ...event, source }));
 

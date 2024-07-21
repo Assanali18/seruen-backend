@@ -18,28 +18,31 @@ export const getEventChunks = (events: Event[], chunkSize: number): Event[][] =>
 };
 
 export const getRecommendations = async (chunk: Event[], userPreferences: { spendingLimit?: number; hobbies?: string[]; userName?: string; userPrompt?: string; }): Promise<{ venue: string; ticketLink: string; message: string; score: number }[]> => {
-
+  const currentDate = new Date().toISOString().split('T')[0]; 
+  
   chunk.forEach(event => {
-    console.log("Title : ", event.title, "Price : ", event.price, "Date : ", event.date );
+    console.log("Title : ", event.title, "Price : ", event.price, "Date : ", event.date);
   });
 
   const systemPrompt = `
-    I have provided chunk between 0 and 10 event.
-    Please pay special attention to the user's hobbies and budget.
-    First, pay attention to popularity, that is, the most popular ones come first, more than 1000 are considered normal in popularity also check other criteria. 
-    Then see if it fits according to preferences, if the event fits the user's preferences, then it fits, you can see this from tags. 
-    Thirdly, look at the budget, it should not exceed the user's budget by more than 3,000 tenge
-     Selection for preferences is equivalent to selection by quantity. Find the perfect balance between them.
+    I have provided a chunk of up to 10 events.
+    Pay special attention to the user's hobbies and budget.
+    First, prioritize popularity - more than 1000 is considered normal in popularity.
+    Then check if it matches preferences, using tags as a guide.
+    Thirdly, ensure the event's price does not exceed the user's budget by more than 3,000 tenge.
+    Balance selection for preferences and quantity.
     Select as many events as you see fit based on the given criteria.
     User's budget: ${userPreferences.spendingLimit}
     User's hobbies: ${JSON.stringify(userPreferences.hobbies)}
     Events: ${JSON.stringify(chunk)}
+    Current Date: ${currentDate}
 
-    Please recommend the most relevant events, sorted by relevance, in a list of creative, interesting, and engaging messages with all necessary details, including the date, time, venue,ticketlink, appropriate emojis related to the event, and a relevance score from 1 to 100.
+    Recommend the most relevant events, sorted by relevance, in a list of creative, interesting, and engaging messages with all necessary details, including date, time, venue, ticket link, appropriate emojis related to the event, and a relevance score from 1 to 100.
     Use the user's name ${userPreferences.userName} in the message explaining why they should attend each event. Respond as a professional SMM specialist.
-    Be sure that the price of the event was not more expensive than the user's budget by 3000 tenge.
+    Ensure the event price does not exceed the user's budget by more than 3000 tenge.
     Avoid repeating events in the recommendations.
-    Do not invent new events, only use the events provided.
+    Do not invent new events, only use the provided events.
+    Do not change the dates of the events. Use the provided dates exactly as they are.
     Discard any events that do not fit the user's preferences based on the provided criteria.
     Return the response as a valid array of objects, each with keys "venue", "ticketLink", "message", and "score" containing the formatted event details and relevance score.
     If you are unable to find any events that meet the user's criteria, return an empty array.

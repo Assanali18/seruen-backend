@@ -57,6 +57,7 @@ export const addEventsToPinecone = async () => {
         venue: events[idx].venue ?? '',
         price: events[idx].price ?? '',
         ticketLink: events[idx].ticketLink ?? '',
+        source: events[idx].source ?? '',
       },
     }));
 
@@ -67,10 +68,12 @@ export const addEventsToPinecone = async () => {
   }
 };
 
-export const deleteEventsFromPinecone = async () => {
+export const deleteEventsFromPinecone = async (source: string) => {
   try {
-    await index.deleteAll();
-    console.log('Events successfully deleted from Pinecone.');
+    const deleteResponse = await index.deleteMany({
+        source: source
+    });
+    console.log('Events successfully deleted from Pinecone:', deleteResponse);
   } catch (error) {
     console.error('Error deleting events from Pinecone:', error);
   }

@@ -239,7 +239,8 @@ bot.on('message', async (msg) => {
     return;
   }
 
-  if (!(chatId in userSetupStages)) {
+
+  if (!(chatId in userSetupStages)) { 
     try {
       bot.sendChatAction(chatId, 'typing');
       const classificationResult = await classifyAndEnhanceMessage(userText);
@@ -251,7 +252,7 @@ bot.on('message', async (msg) => {
         const userEmbedding = await getEmbedding(classificationResult.response, user);
         const queryResponse = await index.query({
           vector: userEmbedding,
-          topK: 10,
+          topK: 100,
           includeMetadata: true,
         });
 
@@ -263,11 +264,15 @@ bot.on('message', async (msg) => {
 
             const formattedEvents = await getRecommendations(mongoEvents, { ...user, userPrompt: userText });
 
-            user.generatedPosts = formattedEvents;
-            user.lastGeneratedPostIndex = 0;
-            await User.findByIdAndUpdate(user._id, { generatedPosts: user.generatedPosts, lastGeneratedPostIndex: user.lastGeneratedPostIndex });
+            if (formattedEvents.length > 0) {
+              user.generatedPosts = formattedEvents;
+              user.lastGeneratedPostIndex = 0;
+              await User.findByIdAndUpdate(user._id, { generatedPosts: user.generatedPosts, lastGeneratedPostIndex: user.lastGeneratedPostIndex });
 
-            await sendNextGeneratedEvent(chatId);
+              await sendNextGeneratedEvent(chatId);
+            } else {
+              await bot.sendMessage(chatId, 'К сожалению, я не смог найти подходящие ивенты.');
+            }
           } else {
             await bot.sendMessage(chatId, 'К сожалению, я не смог найти подходящие ивенты.');
           }
@@ -451,9 +456,11 @@ const getEmbedding = async (content: string | undefined, user: any): Promise<num
 };
 
 const classifyAndEnhanceMessage = async (message: string): Promise<{ isRelated: boolean | undefined, response: string | undefined }> => {
-  const systemPrompt = `Вы являетесь помощником по рекомендациям мероприятий в Алматы. В векторной базе данных содержатся события и мероприятия, происходящие в Алматы. Если пользователь просит рекомендации по мероприятиям, ответьте JSON-объектом {"isRelated": true, "response": "улучшенный запрос для векторной базы данных"}. Если нет, ответьте JSON-объектом {"isRelated": false, "response": "подходящий ответ"}.
+  const currentDate = new Date().toISOString().split('T')[0]; 
+  
+  const systemPrompt = `Вы являетесь помощником по рекомендациям мероприятий в Алматы, разработчик которого является Уштаев Асанали, вот его телеграм: @us_sun(если они спросят), инстаграм: us_a.sun. . В векторной базе данных содержатся события и мероприятия, происходящие в Алматы. Если пользователь просит рекомендации по мероприятиям, ответьте JSON-объектом {"isRelated": true, "response": "улучшенный запрос для векторной базы данных"}. Если нет, ответьте JSON-объектом {"isRelated": false, "response": "подходящий ответ"}.
 
-        Если пользователь спрашивает о мероприятиях на конкретные даты или упоминает такие термины, как "завтра", определите точную дату, на которую он ссылается, и включите ее в улучшенный запрос.
+        Если пользователь спрашивает о мероприятиях на конкретные даты или упоминает такие термины, как "завтра", определите точную дату, на которую он ссылается, и включите ее в улучшенный запрос добавив туда: "сегодняшяя дата ${currentDate}". В таких случаях находи мероприятия строго по дате.
 
         Не включайте пустые поля в ответ JSON.
 
@@ -482,12 +489,14 @@ const classifyAndEnhanceMessage = async (message: string): Promise<{ isRelated: 
   console.log('OpenAI response:', answer);
   
   try {
-    const jsonResponse = answer ? JSON.parse(answer) : undefined;
+    const jsonResponse = answer ? JSON.parse(answer.replace(/```json|```/g, '').trim()) : undefined;
     return { isRelated: jsonResponse.isRelated, response: jsonResponse.response };
   } catch (error) {
-    throw new Error('Неверный JSON ответ от GPT');
+    console.error('Error parsing JSON response from GPT:', error);
+    return { isRelated: false, response: 'Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте еще раз позже.' };
   }
 };
+
 
 bot.on('voice', async (msg) => {
   const chatId = msg.chat.id;
