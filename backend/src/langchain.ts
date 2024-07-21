@@ -36,15 +36,16 @@ const getEmbeddings = async (contents: string[]): Promise<number[][]> => {
 export const addEventsToPinecone = async () => {
   try {
     const events: IEvent[] = await EventModel.find();
-    const eventContents = events.map(event => {
-      return `${event.description ?? ''} Дата: ${event.date ?? ''} Время: ${event.time ?? ''} Цена: ${event.price ?? ''}`;
-    });
+    const eventContents = events
+      .filter(event => event.venue)
+      .map(event => {
+        return `${event.description ?? ''} Дата: ${event.date ?? ''} Время: ${event.time ?? ''} Цена: ${event.price ?? ''}`;
+      });
     console.log('Events fetched successfully.');
     
     const embeddings = await getEmbeddings(eventContents);
     console.log('Embeddings generated successfully.');
     
-
     const upserts = embeddings.map((embedding, idx) => ({
       id: (events[idx]._id as string).toString(),
       values: embedding,
@@ -66,4 +67,11 @@ export const addEventsToPinecone = async () => {
   }
 };
 
-addEventsToPinecone();
+export const deleteEventsFromPinecone = async () => {
+  try {
+    await index.deleteAll();
+    console.log('Events successfully deleted from Pinecone.');
+  } catch (error) {
+    console.error('Error deleting events from Pinecone:', error);
+  }
+};

@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { getEventChunks, getRecommendations } from './recomendation';
-import User from './user/models/User';
+import User, { IUser } from './user/models/User';
 import 'dotenv/config';
 import buyTickets from './buyTickets';
 import EventModel, { IEvent } from './event/models/Event';
@@ -12,8 +12,6 @@ import ffmpeg from 'fluent-ffmpeg';
 import fs from 'fs';
 import axios from 'axios';
 
-
-// CHANGE TOKEN IF YOU DEPLOY
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN_DEV || '';
 if (!TELEGRAM_TOKEN) {
   throw new Error('TELEGRAM_TOKEN is not set');
@@ -22,7 +20,6 @@ if (!TELEGRAM_TOKEN) {
 const speechClient = new SpeechClient({
   keyFilename: process.env.GOOGLE_API_KEY,
 });
-
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 console.log('Telegram bot started');
@@ -51,17 +48,21 @@ interface UserPreferences {
 
 const userSetupStages: { [chatId: string]: { stage: number, field?: string } } = {};
 
+const availableCommands = ['/start', '/change_budget', '/change_hobbies', '/stop_session', '/next_event', '/view_preferences'];
+
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
-  const userName = msg.from?.username ||  '';
-  const firstName = msg.from?.first_name ||  '';
+  const userName = msg.from?.username || '';
+  const firstName = msg.from?.first_name || '';
   console.log('username', userName);
 
-  // Генерация уникального идентификатора пользователя, если username отсутствует
-  const uniqueUserId = firstName ||  userName ||  `user_${chatId}`;
+  const uniqueUserId = userName || firstName || `user_${chatId}`;
 
   if (uniqueUserId) {
     let user = await User.findOne({ userName: uniqueUserId });
+    if (!user) {
+      user = await User.findOne({ userName: firstName });
+    }
     if (!user) {
       user = new User({
         userName: uniqueUserId,
@@ -75,16 +76,32 @@ bot.onText(/\/start/, async (msg) => {
       await user.save();
       userSetupStages[chatId] = { stage: 0 };
 
-      await bot.sendMessage(chatId, `👋 Добро пожаловать, ${firstName}, в Seruen! Мы очень рады, что вы присоединились к нам. Давайте немного познакомимся, и мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе! Для начала введите ваш бюджет (в тенге):`);
+      await bot.sendMessage(chatId, `👋 Добро пожаловать, ${firstName}, в Seruen!
+      
+Мы очень рады, что вы присоединились к нам. Давайте немного познакомимся, и мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе! 
+
+Для начала введите ваш бюджет (в тенге):`);
     } else {
       user.chatId = chatId.toString();
       user.stopSession = false;
       await user.save();
 
-      const welcomeMessage = `👋 Добро пожаловать, ${firstName}, в Seruen! Мы очень рады, что вы присоединились к нам. Теперь мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе!`;
+      const welcomeMessage = `👋 Добро пожаловать, ${firstName}, в Seruen!
+      
+Мы очень рады, что вы снова с нами. Теперь мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе!
+
+Вы можете спрашивать, куда можно сходить или предложить ивенты.`;
 
       await bot.sendMessage(chatId, welcomeMessage);
-      await bot.sendMessage(chatId, 'Мы готовим для вас рекомендации. Они начнут приходить очень скоро!');
+      await bot.sendMessage(chatId, 'Мы готовим для вас рекомендации. Они начнут приходить очень скоро!', {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: 'Изменить бюджет', callback_data: 'change_budget' }],
+            [{ text: 'Изменить увлечения', callback_data: 'change_hobbies' }],
+            [{ text: 'Посмотреть мои данные', callback_data: 'view_preferences' }]
+          ]
+        }
+      });
 
       try {
         await bot.sendChatAction(chatId, 'typing');
@@ -152,6 +169,59 @@ bot.onText(/\/next_event/, async (msg) => {
   await sendNextEvent(chatId);
 });
 
+bot.onText(/\/view_preferences/, async (msg) => {
+  const chatId = msg.chat.id;
+  const user = await User.findOne({ chatId });
+  if (user) {
+    const preferencesMessage = `Ваши текущие данные:
+    
+Имя пользователя: ${user.userName}
+Бюджет: ${user.spendingLimit || 'не указан'}
+Увлечения: ${user.hobbies?.join(', ') || 'не указаны'}
+`;
+
+    await bot.sendMessage(chatId, preferencesMessage);
+  } else {
+    await bot.sendMessage(chatId, 'Не удалось найти ваши данные. Пожалуйста, зарегистрируйтесь снова, используя команду /start.');
+  }
+});
+
+bot.on('callback_query', async (callbackQuery) => {
+  const chatId = callbackQuery.message?.chat.id;
+
+  if (!chatId) return;
+
+  const action = callbackQuery.data;
+
+  if (action === 'next_event') {
+    await sendNextEvent(chatId);
+  } else if (action === 'next_generated_event') {
+    await sendNextGeneratedEvent(chatId);
+  } else if (action === 'change_budget') {
+    userSetupStages[chatId] = { stage: 0, field: 'budget' };
+    await bot.sendMessage(chatId, 'Пожалуйста, введите ваш новый бюджет (в тенге):');
+  } else if (action === 'change_hobbies') {
+    userSetupStages[chatId] = { stage: 0, field: 'hobbies' };
+    await bot.sendMessage(chatId, 'Пожалуйста, введите ваши новые увлечения (через запятую):');
+  } else if (action === 'view_preferences') {
+    const user = await User.findOne({ chatId });
+    if (user) {
+      const preferencesMessage = `Ваши текущие данные:
+      
+Имя пользователя: ${user.userName}
+Бюджет: ${user.spendingLimit || 'не указан'}
+Увлечения: ${user.hobbies?.join(', ') || 'не указаны'}
+`;
+
+      await bot.sendMessage(chatId, preferencesMessage);
+    } else {
+      await bot.sendMessage(chatId, 'Не удалось найти ваши данные. Пожалуйста, зарегистрируйтесь снова, используя команду /start.');
+    }
+  }
+
+  bot.answerCallbackQuery(callbackQuery.id);
+});
+
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const userText = msg.text;
@@ -162,12 +232,20 @@ bot.on('message', async (msg) => {
     return;
   }
 
+  if (userText.startsWith('/')) {
+    if (!availableCommands.includes(userText)) {
+      await bot.sendMessage(chatId, 'Неизвестная команда. Доступные команды:\n/start\n/change_budget\n/change_hobbies\n/stop_session\n/next_event\n/view_preferences');
+    }
+    return;
+  }
+
   if (!(chatId in userSetupStages)) {
     try {
       bot.sendChatAction(chatId, 'typing');
       const classificationResult = await classifyAndEnhanceMessage(userText);
 
       if (classificationResult.isRelated) {
+        await bot.sendMessage(chatId, 'Начался поиск в базе данных по вашему запросу...');
         console.log('User message is related:', classificationResult.response);
         
         const userEmbedding = await getEmbedding(classificationResult.response, user);
@@ -189,16 +267,7 @@ bot.on('message', async (msg) => {
             user.lastGeneratedPostIndex = 0;
             await User.findByIdAndUpdate(user._id, { generatedPosts: user.generatedPosts, lastGeneratedPostIndex: user.lastGeneratedPostIndex });
 
-            const firstEvent = formattedEvents[0];
-            if (firstEvent && firstEvent.message) {
-              await bot.sendMessage(chatId, `Вот что я нашел для вас:\n\n${firstEvent.message}`, {
-                reply_markup: {
-                  inline_keyboard: [
-                    [{ text: "🔜 Следующий сгенерированный ивент", callback_data: 'next_generated_event' }]
-                  ]
-                }
-              });
-            }
+            await sendNextGeneratedEvent(chatId);
           } else {
             await bot.sendMessage(chatId, 'К сожалению, я не смог найти подходящие ивенты.');
           }
@@ -221,30 +290,32 @@ bot.on('message', async (msg) => {
 
   switch (field) {
     case 'budget':
-      user.spendingLimit = parseInt(msg.text);
+      user.spendingLimit = parseInt(userText!);
+      await User.findByIdAndUpdate(user._id, { spendingLimit: user.spendingLimit });
+      delete userSetupStages[chatId];
+      await bot.sendMessage(chatId, 'Ваш бюджет обновлен.');
       break;
     case 'hobbies':
-      user.hobbies = msg.text.split(',').map(item => item.trim());
+      user.hobbies = userText!.split(',').map(item => item.trim());
+      await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
+      delete userSetupStages[chatId];
+      await bot.sendMessage(chatId, 'Ваши увлечения обновлены.');
       break;
     default:
       switch (stage) {
         case 0:
-          user.spendingLimit = parseInt(msg.text);
-          userSetupStages[chatId] = { stage: 1 };
+          user.spendingLimit = parseInt(userText!);
+          userSetupStages[chatId] = { stage: 1, field: 'hobbies' };
           await bot.sendMessage(chatId, 'Пожалуйста, введите ваши увлечения (через запятую):');
           return;
         case 1:
-          user.hobbies = msg.text.split(',').map(item => item.trim());
+          user.hobbies = userText!.split(',').map(item => item.trim());
           await User.findByIdAndUpdate(user._id, { spendingLimit: user.spendingLimit, hobbies: user.hobbies });
           delete userSetupStages[chatId];
           await bot.sendMessage(chatId, 'Спасибо! Ваши данные сохранены. Получаем ваши персонализированные рекомендации...');
           break;
       }
   }
-
-  await User.findByIdAndUpdate(user._id, { spendingLimit: user.spendingLimit, hobbies: user.hobbies });
-  delete userSetupStages[chatId];
-  await bot.sendMessage(chatId, 'Ваши данные обновлены. Получаем ваши персонализированные рекомендации...');
 
   try {
     await bot.sendChatAction(chatId, 'typing');
@@ -332,7 +403,7 @@ const sendNextGeneratedEvent = async (chatId: number) => {
     return;
   }
 
-  await bot.sendMessage(chatId, nextEvent.message.replace(/\\n/g, '\n'), {
+  await bot.sendMessage(chatId, `🔵 ${nextEvent.message.replace(/\\n/g, '\n')}`, {
     reply_markup: {
       inline_keyboard: [
         [{ text: "Купить билеты", url: nextEvent.ticketLink }],
@@ -343,22 +414,6 @@ const sendNextGeneratedEvent = async (chatId: number) => {
   user.lastGeneratedPostIndex = (user.lastGeneratedPostIndex ?? 0) + 1;
   await User.findByIdAndUpdate(user._id, { lastGeneratedPostIndex: user.lastGeneratedPostIndex });
 };
-
-bot.on('callback_query', async (callbackQuery) => {
-  const chatId = callbackQuery.message?.chat.id;
-
-  if (!chatId) return;
-
-  const action = callbackQuery.data;
-
-  if (action === 'next_event') {
-    await sendNextEvent(chatId);
-  } else if (action === 'next_generated_event') {
-    await sendNextGeneratedEvent(chatId);
-  }
-
-  bot.answerCallbackQuery(callbackQuery.id);
-});
 
 cron.schedule('0 */6 * * *', async () => {
   console.log('Запуск планировщика для отправки рекомендаций пользователям');
@@ -374,12 +429,14 @@ cron.schedule('0 */6 * * *', async () => {
   }
 });
 
-const getEmbedding = async (content: string|undefined, user: any): Promise<number[]> => {
+const getEmbedding = async (content: string | undefined, user: any): Promise<number[]> => {
   const userPreferences = `
     Бюджет: ${user.spendingLimit ?? 'не указан'}
     Увлечения: ${user.hobbies?.join(', ') ?? 'не указаны'}
   `;
   const input = `${content}\n\nПользовательские предпочтения:\n${userPreferences}`;
+  console.log('Embedding input:', input);
+  
 
   const response = await openai.embeddings.create({
     model: 'text-embedding-ada-002',
@@ -393,7 +450,7 @@ const getEmbedding = async (content: string|undefined, user: any): Promise<numbe
   }
 };
 
-const classifyAndEnhanceMessage = async (message: string): Promise<{ isRelated: boolean|undefined, response: string|undefined }> => {
+const classifyAndEnhanceMessage = async (message: string): Promise<{ isRelated: boolean | undefined, response: string | undefined }> => {
   const systemPrompt = `Вы являетесь помощником по рекомендациям мероприятий в Алматы. В векторной базе данных содержатся события и мероприятия, происходящие в Алматы. Если пользователь просит рекомендации по мероприятиям, ответьте JSON-объектом {"isRelated": true, "response": "улучшенный запрос для векторной базы данных"}. Если нет, ответьте JSON-объектом {"isRelated": false, "response": "подходящий ответ"}.
 
         Если пользователь спрашивает о мероприятиях на конкретные даты или упоминает такие термины, как "завтра", определите точную дату, на которую он ссылается, и включите ее в улучшенный запрос.
@@ -422,6 +479,8 @@ const classifyAndEnhanceMessage = async (message: string): Promise<{ isRelated: 
   });
 
   const answer = response.choices[0].message.content?.trim();
+  console.log('OpenAI response:', answer);
+  
   try {
     const jsonResponse = answer ? JSON.parse(answer) : undefined;
     return { isRelated: jsonResponse.isRelated, response: jsonResponse.response };
@@ -498,8 +557,4 @@ async function convertOggToFlac(inputPath: string, outputPath: string): Promise<
   });
 }
 
-
-
 export default bot;
-
-
