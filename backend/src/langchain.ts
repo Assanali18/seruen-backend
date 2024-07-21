@@ -69,11 +69,24 @@ export const addEventsToPinecone = async () => {
 };
 
 export const deleteEventsFromPinecone = async (source: string) => {
+  console.log('Deleting events from Pinecone:', source);
+  
   try {
-    const deleteResponse = await index.deleteMany({
-        source: source
-    });
-    console.log('Events successfully deleted from Pinecone:', deleteResponse);
+
+    const events: IEvent[] = await EventModel.find({ source });
+    
+    if (events.length === 0) {
+      console.log('No events found for the given source.');
+      return;
+    }
+    
+    const eventIds = events.map(event => (event._id as string).toString());
+    console.log("Size of eventIds: ", eventIds.length);
+    
+
+    await index.deleteMany(eventIds);
+
+    console.log('Events successfully deleted from Pinecone.');
   } catch (error) {
     console.error('Error deleting events from Pinecone:', error);
   }

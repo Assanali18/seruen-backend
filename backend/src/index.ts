@@ -9,6 +9,8 @@ import buyHallTicket from './hall-tickets';
 import globalRouter from './global-router';
 import connectDB from './db';
 import cors from 'cors';
+import { deleteEventsFromPinecone } from './langchain';
+import axios from 'axios';
 
 
 const app = express();
