@@ -370,6 +370,11 @@ const sendNextEvent = async (chatId: number) => {
     return;
   }
 
+  const chatExists = await checkChatExistence(chatId);
+  if (!chatExists) {
+    return;
+  }
+
   const nextEvent = user.recommendations[user.lastRecommendationIndex || 0];
 
   if (!nextEvent) {
@@ -420,7 +425,7 @@ const sendNextGeneratedEvent = async (chatId: number) => {
   await User.findByIdAndUpdate(user._id, { lastGeneratedPostIndex: user.lastGeneratedPostIndex });
 };
 
-cron.schedule('*/2 * * * *', async () => {
+cron.schedule('0 */6 * * *', async () => {
   console.log('Запуск планировщика для отправки рекомендаций пользователям');
   try {
     const users = await User.find();
@@ -433,6 +438,16 @@ cron.schedule('*/2 * * * *', async () => {
     console.error('Ошибка при отправке плановых рекомендаций:', error);
   }
 });
+
+const checkChatExistence = async (chatId) => {
+  try {
+    await bot.getChat(chatId);
+    return true;
+  } catch (error) {
+    console.error(`Chat with ID ${chatId} not found or bot is removed from it:`, error);
+    return false;
+  }
+};
 
 const getEmbedding = async (content: string | undefined, user: any): Promise<number[]> => {
   const userPreferences = `
