@@ -420,7 +420,7 @@ const sendNextGeneratedEvent = async (chatId: number) => {
   await User.findByIdAndUpdate(user._id, { lastGeneratedPostIndex: user.lastGeneratedPostIndex });
 };
 
-cron.schedule('0 */6 * * *', async () => {
+cron.schedule('*/2 * * * *', async () => {
   console.log('Запуск планировщика для отправки рекомендаций пользователям');
   try {
     const users = await User.find();
