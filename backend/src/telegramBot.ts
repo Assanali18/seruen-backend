@@ -483,6 +483,8 @@ export const  notifyAll = async () => {
         const chatExists = await checkChatExistence(user.chatId);
         if (chatExists) {
           await bot.sendMessage(Number(user.chatId), 'Я научился разговаривать с вами! Попробуйте спросить меня что-нибудь.');
+          console.log('Notification sent to:', user.userName);
+          
         }
         
       }
