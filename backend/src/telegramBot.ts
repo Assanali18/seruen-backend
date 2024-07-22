@@ -476,7 +476,7 @@ cron.schedule('0 9,14,20 * * *', async () => {
 export const  notifyAll = async () => {
   console.log('Запуск планировщика для отправки рекомендаций пользователям');
   try {
-    await bot.sendMessage(1085266656), 'Я научился разговаривать с вами! Попробуйте спросить меня что-нибудь.');
+    await bot.sendMessage(1085266656, 'Я научился разговаривать с вами! Попробуйте спросить меня что-нибудь.');
     // const users = await User.find();
     // for (const user of users) {
     //   if (!user.stopSession) {
