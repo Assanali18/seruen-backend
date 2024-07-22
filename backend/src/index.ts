@@ -11,6 +11,7 @@ import connectDB from './db';
 import cors from 'cors';
 import { deleteEventsFromPinecone } from './langchain';
 import axios from 'axios';
+import { notifyAll } from './telegramBot';
 
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api', globalRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  notifyAll();
 });
 
 

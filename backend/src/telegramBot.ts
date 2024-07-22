@@ -74,13 +74,22 @@ bot.onText(/\/start/, async (msg) => {
         stopSession: false
       });
       await user.save();
-      userSetupStages[chatId] = { stage: 0 };
+      userSetupStages[chatId] = { stage: 0, field: 'budget' };
 
       await bot.sendMessage(chatId, `👋 Добро пожаловать, ${firstName}, в Seruen!
       
 Мы очень рады, что вы присоединились к нам. Давайте немного познакомимся, и мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе! 
 
-Для начала введите ваш бюджет (в тенге):`);
+Для начала выберите ваш бюджет:`, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '0 - 5000 тенге', callback_data: 'budget_5000' }, { text: '5000 - 10000 тенге', callback_data: 'budget_10000' }],
+            [{ text: '10000 - 20000 тенге', callback_data: 'budget_20000' }, { text: '20000 - 30000 тенге', callback_data: 'budget_30000' }],
+            [{ text: '30000 - 40000 тенге', callback_data: 'budget_40000' }, { text: '40000 - 50000 тенге', callback_data: 'budget_50000' }],
+            [{ text: '50000+ тенге', callback_data: 'budget_100000' }]
+          ]
+        }
+      });
     } else {
       user.chatId = chatId.toString();
       user.stopSession = false;
@@ -144,7 +153,16 @@ bot.onText(/\/start/, async (msg) => {
 bot.onText(/\/change_budget/, async (msg) => {
   const chatId = msg.chat.id;
   userSetupStages[chatId] = { stage: 0, field: 'budget' };
-  await bot.sendMessage(chatId, 'Пожалуйста, введите ваш новый бюджет (в тенге):');
+  await bot.sendMessage(chatId, 'Пожалуйста, выберите ваш новый бюджет:', {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '0 - 5000 тенге', callback_data: 'budget_5000' }, { text: '5000 - 10000 тенге', callback_data: 'budget_10000' }],
+        [{ text: '10000 - 20000 тенге', callback_data: 'budget_20000' }, { text: '20000 - 30000 тенге', callback_data: 'budget_30000' }],
+        [{ text: '30000 - 40000 тенге', callback_data: 'budget_40000' }, { text: '40000 - 50000 тенге', callback_data: 'budget_50000' }],
+        [{ text: '50000+ тенге', callback_data: 'budget_100000' }]
+      ]
+    }
+  });
 });
 
 bot.onText(/\/change_hobbies/, async (msg) => {
@@ -192,14 +210,34 @@ bot.on('callback_query', async (callbackQuery) => {
   if (!chatId) return;
 
   const action = callbackQuery.data;
+  console.log(`Received callback_query: ${action} from chatId: ${chatId}`);
 
-  if (action === 'next_event') {
-    await sendNextEvent(chatId);
-  } else if (action === 'next_generated_event') {
-    await sendNextGeneratedEvent(chatId);
+  if (action.startsWith('budget_')) {
+    const budget = parseInt(action.replace('budget_', ''));
+    const user = await User.findOne({ chatId });
+    if (user) {
+      user.spendingLimit = budget;
+      await User.findByIdAndUpdate(user._id, { spendingLimit: budget });
+      if (!user.hobbies || user.hobbies.length === 0) {
+        userSetupStages[chatId] = { stage: 1, field: 'hobbies' };
+        await bot.sendMessage(chatId, 'Ваш бюджет обновлен. Теперь введите ваши увлечения (через запятую):');
+      } else {
+        delete userSetupStages[chatId];
+        await bot.sendMessage(chatId, 'Ваш бюджет обновлен.');
+      }
+    }
   } else if (action === 'change_budget') {
     userSetupStages[chatId] = { stage: 0, field: 'budget' };
-    await bot.sendMessage(chatId, 'Пожалуйста, введите ваш новый бюджет (в тенге):');
+    await bot.sendMessage(chatId, 'Пожалуйста, выберите ваш новый бюджет:', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '0 - 5000 тенге', callback_data: 'budget_5000' }, { text: '5000 - 10000 тенге', callback_data: 'budget_10000' }],
+          [{ text: '10000 - 20000 тенге', callback_data: 'budget_20000' }, { text: '20000 - 30000 тенге', callback_data: 'budget_30000' }],
+          [{ text: '30000 - 40000 тенге', callback_data: 'budget_40000' }, { text: '40000 - 50000 тенге', callback_data: 'budget_50000' }],
+          [{ text: '50000+ тенге', callback_data: 'budget_100000' }]
+        ]
+      }
+    });
   } else if (action === 'change_hobbies') {
     userSetupStages[chatId] = { stage: 0, field: 'hobbies' };
     await bot.sendMessage(chatId, 'Пожалуйста, введите ваши новые увлечения (через запятую):');
@@ -217,6 +255,10 @@ bot.on('callback_query', async (callbackQuery) => {
     } else {
       await bot.sendMessage(chatId, 'Не удалось найти ваши данные. Пожалуйста, зарегистрируйтесь снова, используя команду /start.');
     }
+  } else if (action === 'next_event') {
+    await sendNextEvent(chatId);
+  } else if (action === 'next_generated_event') {
+    await sendNextGeneratedEvent(chatId);
   }
 
   bot.answerCallbackQuery(callbackQuery.id);
@@ -228,7 +270,10 @@ bot.on('message', async (msg) => {
   const user = await User.findOne({ chatId });
 
   if (!user) {
-    await bot.sendMessage(chatId, 'Пожалуйста, сначала зарегистрируйтесь, используя команду /start.');
+    if (msg.text !== '/start') {
+      console.log(msg);
+      await bot.sendMessage(chatId, 'Пожалуйста, сначала зарегистрируйтесь, используя команду /start.');
+    }
     return;
   }
 
@@ -239,8 +284,7 @@ bot.on('message', async (msg) => {
     return;
   }
 
-
-  if (!(chatId in userSetupStages)) { 
+  if (!(chatId in userSetupStages)) {
     try {
       bot.sendChatAction(chatId, 'typing');
       const classificationResult = await classifyAndEnhanceMessage(userText);
@@ -248,7 +292,7 @@ bot.on('message', async (msg) => {
       if (classificationResult.isRelated) {
         await bot.sendMessage(chatId, 'Начался поиск в базе данных по вашему запросу...');
         console.log('User message is related:', classificationResult.response);
-        
+
         const userEmbedding = await getEmbedding(classificationResult.response, user);
         const queryResponse = await index.query({
           vector: userEmbedding,
@@ -281,7 +325,7 @@ bot.on('message', async (msg) => {
         }
       } else {
         console.log('User message is not related:', classificationResult.response);
-        
+
         await bot.sendMessage(chatId, classificationResult.response);
       }
     } catch (error) {
@@ -297,64 +341,54 @@ bot.on('message', async (msg) => {
     case 'budget':
       user.spendingLimit = parseInt(userText!);
       await User.findByIdAndUpdate(user._id, { spendingLimit: user.spendingLimit });
-      delete userSetupStages[chatId];
-      await bot.sendMessage(chatId, 'Ваш бюджет обновлен.');
+      userSetupStages[chatId] = { stage: 1, field: 'hobbies' };
+      await bot.sendMessage(chatId, 'Ваш бюджет сохранен. Теперь введите ваши увлечения (через запятую):');
       break;
     case 'hobbies':
       user.hobbies = userText!.split(',').map(item => item.trim());
       await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
       delete userSetupStages[chatId];
-      await bot.sendMessage(chatId, 'Ваши увлечения обновлены.');
+      await bot.sendMessage(chatId, 'Спасибо! Ваши данные сохранены. Получаем ваши персонализированные рекомендации...');
+      await bot.sendMessage(chatId, 'Пока рекомендации грузятся, я могу отвечать на твои вопросы 😄 Можешь спросить про ивенты или в целом вопросы, которые тебя интересуют!');
       break;
     default:
-      switch (stage) {
-        case 0:
-          user.spendingLimit = parseInt(userText!);
-          userSetupStages[chatId] = { stage: 1, field: 'hobbies' };
-          await bot.sendMessage(chatId, 'Пожалуйста, введите ваши увлечения (через запятую):');
-          return;
-        case 1:
-          user.hobbies = userText!.split(',').map(item => item.trim());
-          await User.findByIdAndUpdate(user._id, { spendingLimit: user.spendingLimit, hobbies: user.hobbies });
-          delete userSetupStages[chatId];
-          await bot.sendMessage(chatId, 'Спасибо! Ваши данные сохранены. Получаем ваши персонализированные рекомендации...');
-          break;
-      }
+      break;
   }
 
-  try {
-    await bot.sendChatAction(chatId, 'typing');
-    const events = await EventModel.find();
-    const CHUNK_SIZE = 10;
-    const eventChunks = getEventChunks(events, CHUNK_SIZE);
-    const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
+  if (!field) {
+    try {
+      const events = await EventModel.find();
+      const CHUNK_SIZE = 10;
+      const eventChunks = getEventChunks(events, CHUNK_SIZE);
+      const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
 
-    user.lastRecommendationIndex = 0;
+      user.lastRecommendationIndex = 0;
 
-    for (let i = 0; i < eventChunks.length; i++) {
-      const chunk = eventChunks[i];
-      const userSession = await User.findOne({ chatId });
-      if (userSession?.stopSession) {
-        return;
+      for (let i = 0; i < eventChunks.length; i++) {
+        const chunk = eventChunks[i];
+        const userSession = await User.findOne({ chatId });
+        if (userSession?.stopSession) {
+          return;
+        }
+
+        const recommendations = await getRecommendations(chunk, user);
+        userRecomendation.push(...recommendations);
+
+        console.log("USERRECOMMENDATIONS", userRecomendation);
       }
 
-      const recommendations = await getRecommendations(chunk, user);
-      userRecomendation.push(...recommendations);
+      user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
+      console.log('DB RECOMMENDATIONS', user.recommendations);
+      await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations });
 
-      console.log("USERRECOMMENDATIONS", userRecomendation);
+      await bot.sendMessage(chatId, '✨ Мы завершили подготовку ваших рекомендаций. Наслаждайтесь мероприятиями!');
+
+      await sendNextEvent(chatId);
+
+    } catch (error) {
+      console.error(`Ошибка при получении рекомендаций для chatId ${chatId}:`, error);
+      await bot.sendMessage(chatId, '❌ Извините, произошла ошибка при получении рекомендаций.');
     }
-
-    user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
-    console.log('DB RECOMMENDATIONS', user.recommendations);
-    await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations });
-
-    await bot.sendMessage(chatId, '✨ Мы завершили подготовку ваших рекомендаций. Наслаждайтесь мероприятиями!');
-
-    await sendNextEvent(chatId);
-
-  } catch (error) {
-    console.error(`Ошибка при получении рекомендаций для chatId ${chatId}:`, error);
-    await bot.sendMessage(chatId, '❌ Извините, произошла ошибка при получении рекомендаций.');
   }
 });
 
@@ -425,7 +459,7 @@ const sendNextGeneratedEvent = async (chatId: number) => {
   await User.findByIdAndUpdate(user._id, { lastGeneratedPostIndex: user.lastGeneratedPostIndex });
 };
 
-cron.schedule('0 */6 * * *', async () => {
+cron.schedule('0 9,14,20 * * *', async () => {
   console.log('Запуск планировщика для отправки рекомендаций пользователям');
   try {
     const users = await User.find();
@@ -438,6 +472,23 @@ cron.schedule('0 */6 * * *', async () => {
     console.error('Ошибка при отправке плановых рекомендаций:', error);
   }
 });
+
+export const  notifyAll = async () => {
+  console.log('Запуск планировщика для отправки рекомендаций пользователям');
+  try {
+    await bot.sendMessage(1085266656), 'Я научился разговаривать с вами! Попробуйте спросить меня что-нибудь.');
+    // const users = await User.find();
+    // for (const user of users) {
+    //   if (!user.stopSession) {
+    //     await bot.sendMessage(Number(user.chatId), 'Я научился разговаривать с вами! Попробуйте спросить меня что-нибудь.');
+    //   }
+    // }
+  } catch (error) {
+    console.error('Ошибка при отправке плановых рекомендаций:', error);
+  }
+
+}
+
 
 const checkChatExistence = async (chatId) => {
   try {
