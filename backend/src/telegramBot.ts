@@ -102,18 +102,9 @@ bot.onText(/\/start/, async (msg) => {
 Вы можете спрашивать, куда можно сходить или предложить ивенты.`;
 
       await bot.sendMessage(chatId, welcomeMessage);
-      await bot.sendMessage(chatId, 'Мы готовим для вас рекомендации. Они начнут приходить очень скоро!', {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: 'Изменить бюджет', callback_data: 'change_budget' }],
-            [{ text: 'Изменить увлечения', callback_data: 'change_hobbies' }],
-            [{ text: 'Посмотреть мои данные', callback_data: 'view_preferences' }]
-          ]
-        }
-      });
+      await bot.sendMessage(chatId, 'Мы готовим для вас рекомендации. Они начнут приходить очень скоро!');
 
       try {
-        await bot.sendChatAction(chatId, 'typing');
         const events = await EventModel.find();
         const CHUNK_SIZE = 10;
         const eventChunks = getEventChunks(events, CHUNK_SIZE);
@@ -476,7 +467,7 @@ cron.schedule('0 9,14,20 * * *', async () => {
 export const  notifyAll = async () => {
   console.log('Запуск планировщика для отправки рекомендаций пользователям');
   try {
-    await bot.sendMessage(478833721, 'Ты не даун, любимый Бахауддин😘');
+    await bot.sendMessage(478833721, 'Ты не даун, любимый Бахауддин');
     // const users = await User.find();
     // for (const user of users) {
     //   if (!user.stopSession) {

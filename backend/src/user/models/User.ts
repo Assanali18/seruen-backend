@@ -19,6 +19,7 @@ export interface IUser extends Document {
   stopSession: boolean;
   generatedPosts?: any[];
   lastGeneratedPostIndex?: number;
+  priority?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -34,6 +35,7 @@ const UserSchema: Schema = new Schema({
   stopSession: { type: Boolean, default: false },
   generatedPosts: [Schema.Types.Mixed],
   lastGeneratedPostIndex: { type: Number, default: 0 },
+  priority: { type: String, default: 'preference' },
 });
 
 export default mongoose.model<IUser>('User', UserSchema);
