@@ -1,6 +1,6 @@
-import { Event } from './types';
-import EventModel from './event/models/Event';
 import OpenAI from 'openai';
+import { Event } from './types';
+import User from './user/models/User';
 import 'dotenv/config';
 
 const openai = new OpenAI({
@@ -17,7 +17,7 @@ export const getEventChunks = (events: Event[], chunkSize: number): Event[][] =>
   return chunks;
 };
 
-export const getRecommendations = async (chunk: Event[], userPreferences: { spendingLimit?: number; hobbies?: string[]; userName?: string; userPrompt?: string; priority?: string; }): Promise<{ venue: string; ticketLink: string; message: string; score: number }[]> => {
+export const getRecommendations = async (chunk: Event[], userPreferences: { spendingLimit?: number; hobbies?: string[]; userName?: string; userPrompt?: string; likedEvents?: { title: string; date: string; message: string; ticketLink: string; }[]; dislikedEvents?: { title: string; date: string; message: string; ticketLink: string; }[] }): Promise<{ venue: string; ticketLink: string; message: string; score: number }[]> => {
   const currentDate = new Date().toISOString().split('T')[0]; 
   
   chunk.forEach(event => {
@@ -34,7 +34,8 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
     Select as many events as you see fit based on the given criteria.
     User's budget: ${userPreferences.spendingLimit}
     User's hobbies: ${JSON.stringify(userPreferences.hobbies)}
-    User's Name: ${userPreferences.priority}
+    Take attention on Liked events: ${JSON.stringify(userPreferences.likedEvents)}
+    Lean on it also on Disliked events: ${JSON.stringify(userPreferences.dislikedEvents)}
     Events: ${JSON.stringify(chunk)}
     Current Date: ${currentDate}
 

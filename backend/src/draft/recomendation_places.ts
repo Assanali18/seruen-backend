@@ -1,7 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { Seat } from './types';
+import { Seat } from '../types';
 import getSuitableSeats from './parser copy';
 
 const downloadHallImage = async () => {

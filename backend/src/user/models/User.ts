@@ -6,6 +6,13 @@ const recommendationSchema = new mongoose.Schema({
   message: String,
 });
 
+const eventSchema = new Schema({
+  title: String,
+  date: String, // Изменено на строку
+  message: String,
+  ticketLink: String,
+});
+
 export interface IUser extends Document {
   userName: string;
   email?: string;
@@ -20,6 +27,9 @@ export interface IUser extends Document {
   generatedPosts?: any[];
   lastGeneratedPostIndex?: number;
   priority?: string;
+  likedEvents?: { title: string; date: string; message: string; ticketLink: string|''; }[]; 
+  dislikedEvents?: { title: string; date: string; message: string; ticketLink: string|''; }[]; 
+  points?: number; // Новое поле для хранения очков пользователя
 }
 
 const UserSchema: Schema = new Schema({
@@ -36,6 +46,9 @@ const UserSchema: Schema = new Schema({
   generatedPosts: [Schema.Types.Mixed],
   lastGeneratedPostIndex: { type: Number, default: 0 },
   priority: { type: String, default: 'preference' },
+  likedEvents: [eventSchema],
+  dislikedEvents: [eventSchema],
+  points: { type: Number, default: 0 }, // Инициализируем новое поле очков
 });
 
 export default mongoose.model<IUser>('User', UserSchema);
