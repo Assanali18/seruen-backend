@@ -29,13 +29,6 @@ class EventController {
 
                 await addEventsToPinecone();
                 res.status(200).send('Unique events received and saved');
-
-                // Начинаем генерацию рекомендаций для всех пользователей
-                const users = await User.find();
-                for (const user of users) {
-                    await generateRecommendationsForUser(user);
-                }
-                console.log('Recommendations generated for all users');
             } else {
                 res.status(200).send('No unique events to save');
             }

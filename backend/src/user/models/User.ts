@@ -29,7 +29,8 @@ export interface IUser extends Document {
   priority?: string;
   likedEvents?: { title: string; date: string; message: string; ticketLink: string|''; }[]; 
   dislikedEvents?: { title: string; date: string; message: string; ticketLink: string|''; }[]; 
-  points?: number; // Новое поле для хранения очков пользователя
+  points?: number; 
+  lastRecommendationUpdate?: Date;
 }
 
 const UserSchema: Schema = new Schema({
@@ -48,7 +49,8 @@ const UserSchema: Schema = new Schema({
   priority: { type: String, default: 'preference' },
   likedEvents: [eventSchema],
   dislikedEvents: [eventSchema],
-  points: { type: Number, default: 0 }, // Инициализируем новое поле очков
+  points: { type: Number, default: 0 }, 
+  lastRecommendationUpdate: { type: Date },
 });
 
 export default mongoose.model<IUser>('User', UserSchema);

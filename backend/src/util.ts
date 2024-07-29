@@ -190,12 +190,11 @@ export const generateRecommendationsForUser = async (user: any) => {
 
       const recommendations = await getRecommendations(chunk, user);
       userRecomendation.push(...recommendations);
-
-      console.log("USERRECOMMENDATIONS", userRecomendation);
+      console.log("user recommendations", userRecomendation);
+      
     }
 
     user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
-    console.log('DB RECOMMENDATIONS', user.recommendations);
     await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations });
 
     return user.recommendations;

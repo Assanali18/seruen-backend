@@ -17,13 +17,12 @@ function createCallbackData(prefix: string, data: string): string {
   return `${prefix}_${encodedData}`;
 }
 
-export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) => {  
+export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) => {
   const chatId = msg.chat.id;
   console.log('Received /start in chatId:', chatId);
-  
+
   const userName = msg.from?.username || '';
   const firstName = msg.from?.first_name || '';
-  
 
   const uniqueUserId = userName || firstName || `user_${chatId}`;
 
@@ -38,27 +37,24 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
         generatedPosts: [],
         lastGeneratedPostIndex: 0,
         stopSession: false,
-        points: 0 // Новый пользователь начинает с 0 очков
+        points: 0 
       });
 
-      if(msg.text.length > 6) {
-
+      if (msg.text.length > 6) {
         const refID = msg.text.slice(7);
-    
-        await bot.sendMessage(msg.chat.id, `Вы зашли по ссылке пользователя с ID ${refID}`);
         const referrer = await User.findOne({ chatId: refID });
         if (referrer) {
           if (referrer.points !== undefined) {
-            referrer.points += 1; 
+            referrer.points += 1;
             await referrer.save();
-            await bot.sendMessage(referrer.chatId, `🎉 Вы пригласили нового пользователя и у вас уже ${referrer.points}`);
+            await bot.sendMessage(referrer.chatId, `🎉 Вы пригласили нового пользователя и у вас уже ${referrer.points}. Если у вас 10 то напишите @us_sun!`);
           }
         }
-    
-    }
-
+        await bot.sendMessage(msg.chat.id, `Вы зашли по ссылке пользователя с ID ${refID}`);
+      }
 
       userSetupStages[chatId] = { stage: 0, field: 'budget' };
+      await user.save();
 
       const welcomeMessage = `👋 Добро пожаловать, ${firstName}, в Seruen!
       
@@ -81,7 +77,6 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
         }
       });
 
-      await user.save();
     } else {
       user.chatId = chatId.toString();
       user.stopSession = false;
@@ -101,7 +96,7 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
         await bot.sendMessage(chatId, `Привет ${user.userName}! Чем могу помочь?`);
 
         const events = await EventModel.find();
-        const CHUNK_SIZE = 10;
+        const CHUNK_SIZE = 20;
         const eventChunks = getEventChunks(events, CHUNK_SIZE);
         const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
 
@@ -312,7 +307,7 @@ A если ожидание привысило 5 минут то нажмите 
     // Запуск получения рекомендаций
     try {
       const events = await EventModel.find();
-      const CHUNK_SIZE = 10;
+      const CHUNK_SIZE = 20;
       const eventChunks = getEventChunks(events, CHUNK_SIZE);
       const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
 
@@ -488,4 +483,3 @@ export const handleStopSession = async (bot: TelegramBot, msg: TelegramBot.Messa
 
   await bot.sendMessage(chatId, 'Сессия остановлена. Вы больше не будете получать рекомендации.');
 };
-

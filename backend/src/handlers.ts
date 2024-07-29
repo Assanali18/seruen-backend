@@ -112,7 +112,7 @@ export const initHandlers = (bot: TelegramBot) => {
     if (!field) {
       try {
         const events = await EventModel.find();
-        const CHUNK_SIZE = 10;
+        const CHUNK_SIZE = 20;
         const eventChunks = getEventChunks(events, CHUNK_SIZE);
         const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
 
