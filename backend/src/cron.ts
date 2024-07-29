@@ -28,7 +28,7 @@ cron.schedule('0 0 * * *', async () => {
   }
 });
 
-cron.schedule('0 9 * * *', async () => {
+cron.schedule('0 8 * * *', async () => {
   try {
     const users = await User.find();
 
@@ -36,7 +36,7 @@ cron.schedule('0 9 * * *', async () => {
       if (user.chatId) {
         const chatExists = await checkChatExistence(Number(user.chatId));
         if (!chatExists) {
-          return;
+          continue;
         }
         if (chatExists) {
           const message = `🔥 Пригласите 10 друзей и получите 1000 тенге! Используйте вашу реферальную ссылку /ref и начните зарабатывать прямо сейчас! 🎉`;

@@ -60,9 +60,7 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
       
 Мы очень рады, что вы присоединились к нам. Давайте немного познакомимся, и мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе!`;
 
-      const imagePath = path.join(__dirname, 'assets', 'almaty.png');
-
-      await bot.sendPhoto(chatId, imagePath, { caption: welcomeMessage });
+      await bot.sendMessage(chatId, welcomeMessage);
 
       const budgetMessage = 'Для начала выберите ваш бюджет:';
 
