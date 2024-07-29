@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 const recommendationSchema = new mongoose.Schema({
+  title: String,
+  date: String,
   venue: String,
   ticketLink: String,
   message: String,
@@ -21,7 +23,7 @@ export interface IUser extends Document {
   hobbies?: string[];
   schedule?: string[];
   chatId?: string;
-  recommendations?: any[];
+  recommendations?: { title: string; date: string; venue: string; ticketLink: string; message: string; score: number }[];
   lastRecommendationIndex?: number;
   stopSession: boolean;
   generatedPosts?: any[];

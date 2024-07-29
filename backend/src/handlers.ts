@@ -114,7 +114,7 @@ export const initHandlers = (bot: TelegramBot) => {
         const events = await EventModel.find();
         const CHUNK_SIZE = 20;
         const eventChunks = getEventChunks(events, CHUNK_SIZE);
-        const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
+        const userRecomendation: { title: string; date: string; venue: string; ticketLink: string; message: string; score: number }[] = [];
 
         user.lastRecommendationIndex = 0;
 
@@ -133,7 +133,7 @@ export const initHandlers = (bot: TelegramBot) => {
 
         user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
         console.log('DB RECOMMENDATIONS', user.recommendations);
-        await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations });
+        await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations, lastRecommendationUpdate: new Date(), lastRecommendationIndex: 0 });
 
         await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
           reply_markup: {

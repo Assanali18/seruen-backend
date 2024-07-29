@@ -17,7 +17,7 @@ export const getEventChunks = (events: Event[], chunkSize: number): Event[][] =>
   return chunks;
 };
 
-export const getRecommendations = async (chunk: Event[], userPreferences: { spendingLimit?: number; hobbies?: string[]; userName?: string; userPrompt?: string; likedEvents?: { title: string; date: string; message: string; ticketLink: string; }[]; dislikedEvents?: { title: string; date: string; message: string; ticketLink: string; }[] }): Promise<{ venue: string; ticketLink: string; message: string; score: number }[]> => {
+export const getRecommendations = async (chunk: Event[], userPreferences: { spendingLimit?: number; hobbies?: string[]; userName?: string; userPrompt?: string; likedEvents?: { title: string; date: string; message: string; ticketLink: string; }[]; dislikedEvents?: { title: string; date: string; message: string; ticketLink: string; }[] }): Promise<{title: string; date: string; venue: string; ticketLink: string; message: string; score: number }[]> => {
   const currentDate = new Date().toISOString().split('T')[0]; 
   
   chunk.forEach(event => {
@@ -46,12 +46,14 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
     Do not invent new events, only use the provided events.
     Do not change the dates of the events. Use the provided dates exactly as they are.
     Discard any events that do not fit the user's preferences based on the provided criteria.
-    Return the response as a valid array of objects, each with keys "venue", "ticketLink", "message", and "score" containing the formatted event details and relevance score.
+    Return the response as a valid array of objects, each with keys "title", "date", "venue", "ticketLink", "message", and "score" containing the formatted event details and relevance score.
     If you are unable to find any events that meet the user's criteria, return an empty array.
 
     Example:
     [
       {
+        "title": "JONY Concert",
+        "date": "22.09.2024",
         "venue": "Almaty Arena, мкр. Нуркент, 7",
         "ticketLink": "https://sxodim.com/almaty/kontserty/solnyy-koncert-jony/tickets",
         "message": "🔥 Готовы погрузиться в мир эмоций и драйва? 🔥\\n\\nСольный концерт JONY уже совсем скоро! 🎉\\n\\n🗓️ 22.09.2024\\n💰 20000 тг\\n**⏰ 20:00\\n📍 Almaty Arena, мкр. Нуркент, 7\\n\\n🎤 JONY исполнит свои самые популярные хиты, заставит вас петь и танцевать всю ночь напролет!\\n\\n🎫 Билеты уже в продаже: https://sxodim.com/almaty/kontserty/solnyy-koncert-jony/tickets \\n\\nНе пропустите это незабываемое событие! 💥",
@@ -84,7 +86,7 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
     });
     responseText = responseText.replace(/\\n/g, '\\n').replace(/\\r/g, '\\r').replace(/\\t/g, '\\t');
 
-    console.log('Clean Response:', responseText);
+    // console.log('Clean Response:', responseText);
 
     const parsedResponse = JSON.parse(responseText);
 

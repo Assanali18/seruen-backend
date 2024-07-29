@@ -94,7 +94,7 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
         const events = await EventModel.find();
         const CHUNK_SIZE = 20;
         const eventChunks = getEventChunks(events, CHUNK_SIZE);
-        const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
+        const userRecomendation: { title: string; date: string; venue: string; ticketLink: string; message: string; score: number }[] = [];
 
         user.lastRecommendationIndex = 0;
 
@@ -106,14 +106,17 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
           }
 
           const recommendations = await getRecommendations(chunk, user);
+          
           userRecomendation.push(...recommendations);
+          
 
-          console.log("USERRECOMMENDATIONS", userRecomendation);
+          // console.log("USERRECOMMENDATIONS", userRecomendation);
         }
 
         user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
-        console.log('DB RECOMMENDATIONS', user.recommendations);
-        await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations });
+        console.log(userRecomendation.sort((a, b) => b.score - a.score));
+        
+        await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations, lastRecommendationUpdate: new Date(), lastRecommendationIndex: 0 });
 
         await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
           reply_markup: {
@@ -305,7 +308,7 @@ A если ожидание привысило 5 минут то нажмите 
       const events = await EventModel.find();
       const CHUNK_SIZE = 20;
       const eventChunks = getEventChunks(events, CHUNK_SIZE);
-      const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
+      const userRecomendation: { title: string; date: string; venue: string; ticketLink: string; message: string; score: number }[] = [];
 
       user.lastRecommendationIndex = 0;
 
@@ -319,12 +322,12 @@ A если ожидание привысило 5 минут то нажмите 
         const recommendations = await getRecommendations(chunk, user);
         userRecomendation.push(...recommendations);
 
-        console.log("USERRECOMMENDATIONS", userRecomendation);
+        console.log("USERRECOMMENDATIONS", userRecomendation.length);
       }
 
       user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
-      console.log('DB RECOMMENDATIONS', user.recommendations);
-      await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations });
+      console.log('DB RECOMMENDATIONS', user.recommendations.length);
+      await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations, lastRecommendationUpdate: new Date(), lastRecommendationIndex: 0 });
 
       await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
         reply_markup: {

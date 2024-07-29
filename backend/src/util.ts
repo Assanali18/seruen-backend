@@ -97,6 +97,19 @@ export const sendNextEvent = async (chatId: number) => {
     return;
   }
 
+  const currentDate = new Date();
+  const lastUpdatedDate = new Date(user.lastRecommendationUpdate || 0);
+  console.log(lastUpdatedDate);
+  
+
+  const diffTime = Math.abs(currentDate.getTime() - lastUpdatedDate.getTime());
+  const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+
+  if (diffHours > 24) {
+    await bot.sendMessage(chatId, 'Ваши рекомендации устарели. Пожалуйста, обновите их, используя команду /start.');
+    return;
+  }
+
   if (user.stopSession) {
     return;
   }
@@ -169,37 +182,5 @@ export const checkChatExistence = async (chatId: number) => {
   } catch (error) {
     console.error(`Chat with ID ${chatId} not found or bot is removed from it:`, error);
     return false;
-  }
-};
-
-export const generateRecommendationsForUser = async (user: any) => {
-  try {
-    const events = await EventModel.find();
-    const CHUNK_SIZE = 10;
-    const eventChunks = getEventChunks(events, CHUNK_SIZE);
-    const userRecomendation: { venue: string; ticketLink: string; message: string; score: number }[] = [];
-
-    user.lastRecommendationIndex = 0;
-
-    for (let i = 0; i < eventChunks.length; i++) {
-      const chunk = eventChunks[i];
-      const userSession = await User.findOne({ chatId: user.chatId });
-      if (userSession?.stopSession) {
-        return;
-      }
-
-      const recommendations = await getRecommendations(chunk, user);
-      userRecomendation.push(...recommendations);
-      console.log("user recommendations", userRecomendation);
-      
-    }
-
-    user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
-    await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations });
-
-    return user.recommendations;
-  } catch (error) {
-    console.error(`Ошибка при получении рекомендаций для пользователя ${user.chatId}:`, error);
-    throw new Error('Error generating recommendations');
   }
 };

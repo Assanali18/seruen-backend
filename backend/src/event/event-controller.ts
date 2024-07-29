@@ -3,7 +3,7 @@ import EventModel from './models/Event';
 import { addEventsToPinecone, deleteEventsFromPinecone } from '../langchain';
 import { CreateEventDto } from "./dtos/CreateEvent.dto";
 import User from '../user/models/User';
-import { generateRecommendationsForUser } from '../util';
+
 
 class EventController {
     createEvents = async (req: Request, res: Response) => {
