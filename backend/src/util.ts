@@ -9,7 +9,7 @@ import { getRecommendations } from './recomendation';
 
 const MAX_CALLBACK_DATA_LENGTH = 64;
 
-export const availableCommands = ['/start', '/change_budget', '/menu', '/change_hobbies', '/change_preferences','/view_favorites', '/view_data','/stop_session', '/next_event', '/view_preferences'];
+export const availableCommands = ['/start', '/change_budget', '/menu', '/change_hobbies', '/change_preferences','/view_favorites', '/view_data','/stop_session', '/next_event', '/view_preferences', '/ref'];
 
 export const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 export const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
