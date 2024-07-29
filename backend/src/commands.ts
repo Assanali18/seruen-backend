@@ -85,9 +85,7 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
 Мы очень рады, что вы снова с нами. Теперь мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе!
 Если сообщение не придет в течение 7 минут, нажмите /start заново или напишите мне @us_sun.`;
 
-      const imagePath = path.join(__dirname, 'assets', 'almaty.png');
-
-      await bot.sendPhoto(chatId, imagePath, { caption: welcomeMessage });
+      await bot.sendMessage(chatId, welcomeMessage);
 
       if (user.spendingLimit && user.hobbies && user.hobbies.length > 0) {
         await bot.sendMessage(chatId, 'Мы готовим для вас рекомендации. Они начнут приходить очень скоро!');
