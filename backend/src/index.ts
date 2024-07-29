@@ -3,7 +3,6 @@ import { logger } from './logger';
 import './bot'; 
 import { parseEvents } from './parser';
 import puppeteer, { Page } from 'puppeteer';
-import buyHallTicket from './draft/hall-tickets';
 import globalRouter from './global-router';
 import connectDB from './db';
 import cors from 'cors';
