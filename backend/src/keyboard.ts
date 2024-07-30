@@ -4,21 +4,28 @@ export const hobbiesOptions = [
     [{ text: '🍲 Еда', callback_data: 'hobby_food' },{ text: '🎭 Театр', callback_data: 'hobby_theater' }],
     [{ text: '🎤 Комедия', callback_data: 'hobby_comedy' },{ text: '🎉 Фестиваль', callback_data: 'hobby_festival' }],
   ];
+
+
+
   export const createHobbiesKeyboard = (selectedHobbies: string[]) => {
     return {
       inline_keyboard: [
-        ...hobbiesOptions.map(row => row.map(option => {
-          const selected = selectedHobbies.includes(option.callback_data);
-          return {
-            text: `${selected ? '✅' : '➖'} ${option.text}`,
-            callback_data: option.callback_data
-          };
-        })),
+        ...hobbiesOptions.map(row =>
+          row.map(option => {
+            const selected = selectedHobbies.includes(option.callback_data);
+            return {
+              text: `${selected ? '✅' : '➖'} ${option.text}`,
+              callback_data: option.callback_data
+            };
+          })
+        ),
         [{ text: 'Готово', callback_data: 'hobbies_done' }]
-      ],
-      resize_keyboard: true
+      ]
     };
   };
+  
+  
+  
   
   
   export const createPreferencesMenu = () => {

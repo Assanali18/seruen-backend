@@ -6,6 +6,7 @@ import { getEventChunks, sendNextEvent, sendNextGeneratedEvent, userSetupStages 
 import { getRecommendations } from './recomendation';
 import path from 'path';
 import { TG_URL } from './config';
+import bot from './bot';
 
 const MAX_CALLBACK_DATA_LENGTH = 64;
 
@@ -57,8 +58,10 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
       await user.save();
 
       const welcomeMessage = `👋 Добро пожаловать, ${firstName}, в Seruen!
-      
-Мы очень рады, что вы присоединились к нам. Давайте немного познакомимся, и мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе!`;
+
+Мы рады, что вы с нами! 🎉 Пора начать получать персонализированные рекомендации по мероприятиям в вашем городе!
+
+🌟 Хотите еще больше удовольствия? Пригласите 10 друзей с помощью ссылки /ref и получите бонус в 1000 тенге! Просто поделитесь ссылкой, и ваши друзья присоединятся к нашей удивительной платформе! Не упустите шанс стать нашим VIP-участником и наслаждаться еще больше крутыми событиями! 🎉💃`;
 
       await bot.sendMessage(chatId, welcomeMessage);
 
@@ -83,13 +86,15 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
       const welcomeMessage = `👋 Добро пожаловать, ${firstName}, в Seruen!
       
 Мы очень рады, что вы снова с нами. Теперь мы будем присылать вам персонализированные рекомендации по мероприятиям в вашем городе!
-Если сообщение не придет в течение 7 минут, нажмите /start заново или напишите мне @us_sun.`;
+Если сообщение не придет в течение 5 минут, нажмите /start заново или напишите мне @us_sun.`;
 
       await bot.sendMessage(chatId, welcomeMessage);
 
       if (user.spendingLimit && user.hobbies && user.hobbies.length > 0) {
-        await bot.sendMessage(chatId, 'Мы готовим для вас рекомендации. Они начнут приходить очень скоро!');
-        await bot.sendMessage(chatId, `Привет ${user.userName}! Чем могу помочь?`);
+        await bot.sendMessage(chatId, `Мы готовим для вас рекомендации. Они начнут приходить очень скоро! 😊 
+
+🌟 Хотите еще больше удовольствия? Пригласите 10 друзей с помощью ссылки /ref и получите бонус в 1000 тенге! Просто поделитесь ссылкой, и ваши друзья присоединятся к нашей удивительной платформе! Не упустите шанс стать нашим VIP-участником и наслаждаться еще больше крутыми событиями! 🎉💃`)
+
 
         const events = await EventModel.find();
         const CHUNK_SIZE = 20;
@@ -256,6 +261,14 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
   if (!user) return;
 
   const messageText = callbackQuery.message?.text || "Нет текста для редактирования";
+  if (action.startsWith('event_list_')) {
+    const startIndex = parseInt(action.replace('event_list_', ''), 10);
+    
+    await bot.deleteMessage(chatId, callbackQuery.message.message_id.toString());
+    
+    await sendEventList(chatId, user.recommendations, startIndex);
+  }
+
 
   if (action.startsWith('budget_')) {
     const budget = parseInt(action.replace('budget_', ''));
@@ -263,7 +276,6 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
     await User.findByIdAndUpdate(user._id, { spendingLimit: budget });
 
     if (user.hobbies && user.hobbies.length > 0) {
-      // Если у пользователя уже есть предпочтения, не просим менять хобби
       delete userSetupStages[chatId];
       await bot.editMessageText('Ваш бюджет сохранен.', {
         chat_id: chatId,
@@ -279,30 +291,30 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
       });
     }
   } else if (action.startsWith('hobby_')) {
-    const hobby = action;
-    if (!user.hobbies) user.hobbies = [];
-    const hobbyIndex = user.hobbies.indexOf(hobby);
-    if (hobbyIndex === -1) {
-      user.hobbies.push(hobby);
-    } else {
-      user.hobbies.splice(hobbyIndex, 1);
+    if (action.startsWith('hobby_')) {
+      const hobby = action;
+      if (!user.hobbies) user.hobbies = [];
+      const hobbyIndex = user.hobbies.indexOf(hobby);
+      if (hobbyIndex === -1) {
+        user.hobbies.push(hobby);
+      } else {
+        user.hobbies.splice(hobbyIndex, 1);
+      }
+    
+      // Обновляем клавиатуру сразу, не дожидаясь ответа от БД
+      const newKeyboard = createHobbiesKeyboard(user.hobbies);
+      await bot.editMessageReplyMarkup({ inline_keyboard: newKeyboard.inline_keyboard }, { chat_id: chatId, message_id: callbackQuery.message?.message_id });
+      await bot.answerCallbackQuery(callbackQuery.id, { text: 'Ваши увлечения обновлены!' });
+    
+      // Обновляем данные в БД
+      await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
     }
-
-    // Обновляем клавиатуру сразу, не дожидаясь ответа от БД
-    const newKeyboard = createHobbiesKeyboard(user.hobbies);
-    await bot.editMessageReplyMarkup(newKeyboard, { chat_id: chatId, message_id: callbackQuery.message?.message_id });
-    await bot.answerCallbackQuery(callbackQuery.id, { text: 'Ваши увлечения обновлены!' });
-
-    // Обновляем данные в БД
-    await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
-
   } else if (action === 'hobbies_done') {
     delete userSetupStages[chatId];
     await bot.editMessageText(`Отлично! Мы сохранили ваши данные. Пока рекомендации грузятся, я могу отвечать на твои вопросы 😄 Можешь спросить про ивенты или в целом вопросы, которые тебя интересуют!
-
-A если ожидание привысило 5 минут то нажмите заново /start.`, 
+A если ожидание привысило 5 минут, нажмите заново /start.`, 
         { chat_id: chatId, message_id: callbackQuery.message?.message_id });
-        await bot.sendMessage(chatId, 'Привет! Чем могу помочь?');
+    await bot.sendMessage(chatId, 'Привет! Чем могу помочь?');
     // Запуск получения рекомендаций
     try {
       const events = await EventModel.find();
@@ -482,3 +494,44 @@ export const handleStopSession = async (bot: TelegramBot, msg: TelegramBot.Messa
 
   await bot.sendMessage(chatId, 'Сессия остановлена. Вы больше не будете получать рекомендации.');
 };
+
+export const sendEventList = async (chatId, events, startIndex = 0, step = 5) => {
+  const eventList = events.slice(startIndex, startIndex + step);
+  const totalEvents = events.length;
+  const totalPages = Math.ceil(totalEvents / step);
+  const currentPage = Math.floor(startIndex / step) + 1;
+
+  if (eventList.length === 0) {
+    await bot.sendMessage(chatId, 'Нет доступных мероприятий.');
+    return;
+  }
+
+  let message = `Страница ${currentPage} из ${totalPages}\n\nВот список мероприятий:\n\n`;
+  eventList.forEach(event => {
+    if (event.date) { // Проверка наличия даты
+      message += `[${event.title}](${event.ticketLink})\nДата: ${event.date}\nМесто: ${event.venue}\n\n`;
+    }
+  });
+
+  const nextIndex = startIndex + step;
+  const prevIndex = startIndex - step;
+  const keyboard: {text: string, callback_data: string}[] = [];
+
+  if (prevIndex >= 0) {
+    keyboard.push({ text: '⬅️ Предыдущие', callback_data: `event_list_${prevIndex}` });
+  }
+  if (nextIndex < events.length) {
+    keyboard.push({ text: 'Следующие ➡️', callback_data: `event_list_${nextIndex}` });
+  }
+
+  console.log('message', message);
+  
+  await bot.sendMessage(chatId, message, {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [keyboard]
+    }
+  });
+};
+
+

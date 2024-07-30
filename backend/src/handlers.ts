@@ -30,7 +30,7 @@ export const initHandlers = (bot: TelegramBot) => {
       return;
     }
 
-    if (userText.startsWith('/')) {
+    if (userText.startsWith('/') && !userText.startsWith('/start') ) {
       if (!availableCommands.includes(userText)) {
         await bot.sendMessage(chatId, 'Неизвестная команда. Доступные команды:\n/start\n/change_budget\n/change_hobbies\n/stop_session\n/next_event\n/view_preferences\n/ref\n/menu\n/view_favorites\n/view_data');
       }

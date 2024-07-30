@@ -8,6 +8,7 @@ import connectDB from './db';
 import cors from 'cors';
 import { deleteEventsFromPinecone } from './langchain';
 import axios from 'axios';
+import { testFunction } from './cron';
 
 
 const app = express();
