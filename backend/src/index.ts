@@ -33,7 +33,7 @@ app.use('/api', globalRouter);
 
 
 app.listen(PORT, () => {
-  notifyAll();
+  // notifyAll();
   console.log(`Server is running on port ${PORT}`);
 });
 
