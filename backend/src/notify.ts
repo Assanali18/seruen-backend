@@ -1,7 +1,7 @@
 import bot from './bot';
 import User from './user/models/User';
 import { checkChatExistence } from './util';
-
+const blackList = [357253401, 4274538, 194877242, 57228964]
 export const notifyAll = async () => {
   console.log('Запуск планировщика для отправки рекомендаций пользователям');
   try {
@@ -10,8 +10,14 @@ export const notifyAll = async () => {
       if (!user.stopSession) {
         const chatExists = await checkChatExistence(Number(user.chatId));
         if (chatExists) {
-          await bot.sendMessage(Number(user.chatId), '🎁 Хотите 1000 тенге? Пригласите 10 друзей с помощью /ref! Делитесь ссылкой и получайте крутые бонусы. Не упустите шанс на больше веселья! 🎉💃');
-          console.log('Notification sent to:', user.userName);
+          if(blackList.includes(Number(user.chatId))) {
+            console.log('User is in blacklist:', user.userName);
+            continue;
+          }
+          else{
+            await bot.sendMessage(Number(user.chatId), '🎁 Хотите 500 тенге? Пригласите 5 друзей с помощью /ref! Делитесь ссылкой и получайте крутые бонусы. Не упустите шанс на больше веселья! 🎉💃');
+            console.log('Notification sent to:', user.userName);
+          }
 
         }
 
