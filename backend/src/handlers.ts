@@ -103,7 +103,7 @@ export const initHandlers = (bot: TelegramBot) => {
         user.hobbies = userText!.split(',').map(item => item.trim());
         await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
         delete userSetupStages[chatId];
-        await bot.sendMessage(chatId, 'Спасибо! Ваши данные сохранены. Мы готовим для вас ивенты под ваши предпочтения, подождите немножко, скоро мы отправим сообщение! Если ожидание привысило 5 минут, нажмите заново /start.');
+        await bot.sendMessage(chatId, 'Спасибо! Ваши данные сохранены. Мы готовим для вас ивенты под ваши предпочтения, подождите немножко, скоро мы отправим сообщение! Если ожидание превысило 5 минут, нажмите заново /start.');
         break;
       default:
         break;
