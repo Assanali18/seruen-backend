@@ -48,7 +48,7 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
           if (referrer.points !== undefined) {
             referrer.points += 1;
             await referrer.save();
-            await bot.sendMessage(referrer.chatId, `🎉 Вы пригласили нового пользователя и у вас уже ${referrer.points}. Если у вас 10 то напишите @us_sun!`);
+            await bot.sendMessage(referrer.chatId, `🎉 Вы пригласили нового пользователя и у вас уже ${referrer.points}. Если у вас 5 то напишите @us_sun!`);
           }
         }
         await bot.sendMessage(msg.chat.id, `Вы зашли по ссылке пользователя с ID ${refID}`);
