@@ -9,6 +9,7 @@ import cors from 'cors';
 import { deleteEventsFromPinecone } from './langchain';
 import axios from 'axios';
 import { testFunction } from './cron';
+import { notifyAll } from './notify';
 
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api', globalRouter);
 
 
 app.listen(PORT, () => {
+  notifyAll();
   console.log(`Server is running on port ${PORT}`);
 });
 

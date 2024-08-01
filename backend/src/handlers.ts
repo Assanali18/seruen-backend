@@ -49,7 +49,7 @@ export const initHandlers = (bot: TelegramBot) => {
           const userEmbedding = await getEmbedding(classificationResult.response, user);
           const queryResponse = await index.query({
             vector: userEmbedding,
-            topK: 150,
+            topK: 200,
             includeMetadata: true,
           });
 
@@ -126,6 +126,8 @@ export const initHandlers = (bot: TelegramBot) => {
           }
 
           const recommendations = await getRecommendations(chunk, user);
+          console.log('events are ready');
+          
           userRecomendation.push(...recommendations);
 
           console.log("USERRECOMMENDATIONS", userRecomendation);
