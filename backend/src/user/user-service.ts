@@ -1,8 +1,6 @@
-import { getRecommendations } from '../recomendation';
 import { CreateUserDto } from './dtos/CreateUser.dto';
-import  User, { IUser }  from './models/User';
+import User, { IUser } from './models/User';
 
-// this user service instance shows how to create a user, get a user by id, and get all users with in-memory data
 class UserService {
   async createUser(userDto: CreateUserDto) {
     const { userName, email, phone, spendingLimit, schedule, hobbies } = userDto;
@@ -12,27 +10,25 @@ class UserService {
       phone,
       spendingLimit,
       hobbies,
-      schedule
+      schedule,
     });
-    console.log('userName from form', userName);
-    // Не добавлять юзера, если он уже есть в базе
+
+    // Проверка на существование пользователя в базе данных
+    const existingUser = await User.findOne({ userName });
+    if (existingUser) {
+      throw new Error('User already exists');
+    }
 
     await newUser.save();
-    console.log('newUser', newUser);
-    
     return newUser;
+  }
 
-    const welcomeMessage = `Привет, ${userName}! Добро пожаловать в Seruen. Мы будем присылать вам персонализированные рекомендации по мероприятиям.`;
-
-    
-    // bot.sendMessage(phone, welcomeMessage);
-    // const userPreferences = { profession: "unknown", salary: spendingLimit, schedule, hobbies, userName };
-    // const recommendations = await getRecommendations(userPreferences);
-
-
-
-
-
+  async getUserRecommendations(username: string) {
+    const user = await User.findOne({ userName: username }) || await User.findOne({ userName: { $regex: new RegExp('^' + username + '$', 'i') } });
+    if (user) {
+      return user.recommendations;
+    }
+    return null;
   }
 }
 

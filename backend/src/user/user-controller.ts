@@ -1,8 +1,7 @@
-import { CreateUserDto } from './dtos/CreateUser.dto';
-import UserService from './user-service';
 import { Request, Response } from 'express';
+import UserService from './user-service';
+import { CreateUserDto } from './dtos/CreateUser.dto';
 
-// a user controller is a class that handles the user routes (incoming frontend requests)
 class UserController {
   private userService: UserService;
 
@@ -10,17 +9,29 @@ class UserController {
     this.userService = userService;
   }
 
-  createUser = (req: Request, res: Response) => {
+  createUser = async (req: Request, res: Response) => {
     try {
       const user: CreateUserDto = req.body;
-      const newUser = this.userService.createUser(user);
+      const newUser = await this.userService.createUser(user);
       res.status(201).json(newUser);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   };
 
-
+  getUserRecommendations = async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const recommendations = await this.userService.getUserRecommendations(username);
+      if (recommendations) {
+        res.status(200).json(recommendations);
+      } else {
+        res.status(404).json({ error: 'User not found or no recommendations available.' });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  };
 }
 
 export default UserController;

@@ -12,4 +12,5 @@ eventRouter.post('/events', eventController.createEvents);
 eventRouter.get('/events/', eventController.getEvents);
 
 
+
 export default eventRouter;
