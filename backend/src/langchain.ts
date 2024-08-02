@@ -16,13 +16,13 @@ const index = pinecone.Index(PINECONE_INDEX_NAME);
 const getEmbeddings = async (contents: string[]): Promise<number[][]> => {
   const embeddings: number[][] = [];
   for (const content of contents) {
-    console.log('Generating embeddings for:', content);
+    // console.log('Generating embeddings for:', content);
     
     const response = await openai.embeddings.create({
       model: 'text-embedding-ada-002',
       input: content,
     });
-    console.log('Response from OpenAI:', response.data);
+    // console.log('Response from OpenAI:', response.data);
     
     if (response.data && response.data[0] && response.data[0].embedding) {
       embeddings.push(response.data[0].embedding);
@@ -44,7 +44,7 @@ export const addEventsToPinecone = async () => {
     console.log('Events fetched successfully.');
     
     const embeddings = await getEmbeddings(eventContents);
-    console.log('Embeddings generated successfully.');
+    console.log('Embeddings generated successfully.', embeddings.length);
     
     const upserts = embeddings.map((embedding, idx) => ({
       id: (events[idx]._id as string).toString(),
@@ -62,7 +62,7 @@ export const addEventsToPinecone = async () => {
     }));
 
     await index.upsert(upserts);
-    console.log('Events successfully added to Pinecone.');
+    console.log('Events successfully added to Pinecone.', upserts.length);
   } catch (error) {
     console.error('Error adding events to Pinecone:', error);
   }
@@ -83,7 +83,6 @@ export const deleteEventsFromPinecone = async (source: string) => {
     const eventIds = events.map(event => (event._id as string).toString());
     console.log("Size of eventIds: ", eventIds.length);
     
-
     await index.deleteMany(eventIds);
 
     console.log('Events successfully deleted from Pinecone.');

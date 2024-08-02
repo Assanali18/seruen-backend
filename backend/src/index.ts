@@ -6,7 +6,7 @@ import puppeteer, { Page } from 'puppeteer';
 import globalRouter from './global-router';
 import connectDB from './db';
 import cors from 'cors';
-import { deleteEventsFromPinecone } from './langchain';
+import { addEventsToPinecone, deleteEventsFromPinecone } from './langchain';
 import axios from 'axios';
 import { testFunction } from './cron';
 import { notifyAll } from './notify';
@@ -31,9 +31,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use('/api', globalRouter);
 
+// deleteEventsFromPinecone('sxodim');
+// deleteEventsFromPinecone('ticketon-yandex');
+// addEventsToPinecone();
+
+// testFunction();
 
 app.listen(PORT, () => {
-
+  
   console.log(`Server is running on port ${PORT}`);
 });
 

@@ -43,7 +43,11 @@ const getWeeklyEvents = (user, isWeekend = false) => {
     if (!event.date) return false; // Пропускаем события без даты
     const eventDate = parseDate(event.date);
     const currentDate = new Date();
+    
     const daysDifference = (eventDate.getTime() - currentDate.getTime()) / (1000 * 3600 * 24);
+    console.log('event:', event.title, 'eventDate:', eventDate, 'currentDate:', currentDate, 'daysDifference:', daysDifference);
+    console.log(daysDifference >= start && daysDifference < end);
+    
     return daysDifference >= start && daysDifference < end;
   }).map(event => ({
     title: event.title,
@@ -86,6 +90,12 @@ export const testFunction = async () => {
       }
 
       const weeklyEvents = getWeeklyEvents(user);
+      console.log('WEEKLY EVENTS:');
+      
+      weeklyEvents.forEach((event, index) => {
+        console.log(index, event.title, event.date);
+      }
+      );
       if (weeklyEvents.length > 0) {
         await sendWeeklyEvents(user, weeklyEvents);
       }

@@ -524,7 +524,7 @@ export const sendEventList = async (chatId, events, startIndex = 0, step = 5) =>
     keyboard.push({ text: 'Следующие ➡️', callback_data: `event_list_${nextIndex}` });
   }
 
-  console.log('message', message);
+  // console.log('message', message);
   
   await bot.sendMessage(chatId, message, {
     parse_mode: 'Markdown',
