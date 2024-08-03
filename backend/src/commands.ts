@@ -4,7 +4,6 @@ import EventModel from './event/models/Event';
 import { createHobbiesKeyboard, createPreferencesMenu } from './keyboard';
 import { getEventChunks, sendNextEvent, sendNextGeneratedEvent, userSetupStages } from './util';
 import { getRecommendations } from './recomendation';
-import path from 'path';
 import { TG_URL } from './config';
 import bot from './bot';
 
@@ -89,9 +88,6 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
       await bot.sendMessage(chatId, welcomeMessage);
 
       if (user.spendingLimit && user.hobbies && user.hobbies.length > 0) {
-        await bot.sendMessage(chatId, `Мы готовим для вас рекомендации. Они начнут приходить очень скоро! 😊 `)
-
-
         const events = await EventModel.find();
         const CHUNK_SIZE = 20;
         const eventChunks = getEventChunks(events, CHUNK_SIZE);
@@ -107,11 +103,7 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
           }
 
           const recommendations = await getRecommendations(chunk, user);
-          
           userRecomendation.push(...recommendations);
-          
-
-          // console.log("USERRECOMMENDATIONS", userRecomendation);
         }
 
         user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
@@ -119,6 +111,7 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
         
         await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations, lastRecommendationUpdate: new Date(), lastRecommendationIndex: 0 });
 
+        // Перенесено сюда, чтобы отправлять сообщение только один раз
         await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
           reply_markup: {
             inline_keyboard: [
@@ -127,6 +120,7 @@ export const handleStart = async (bot: TelegramBot, msg: TelegramBot.Message) =>
             ]
           }
         });
+
       } else {
         const budgetMessage = 'Для начала выберите ваш бюджет:';
         await bot.sendMessage(chatId, budgetMessage, {
@@ -245,8 +239,6 @@ export const handleReferral = async (bot: TelegramBot, msg: TelegramBot.Message)
   await bot.sendMessage(chatId, `Пригласите друзей и получите бонусы! Вот ваша реферальная ссылка: ${referralLink}`);
 };
 
-// commands.ts или handlers.ts
-
 export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: TelegramBot.CallbackQuery) => {
   const chatId = callbackQuery.message?.chat.id;
 
@@ -270,7 +262,6 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
         message_id: callbackQuery.message?.message_id,
       });
     } else {
-
       userSetupStages[chatId] = { stage: 0, field: 'hobbies' };
       await bot.editMessageText('Ваш бюджет сохранен. Пожалуйста, выберите ваши увлечения:', {
         chat_id: chatId,
@@ -279,24 +270,20 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
       });
     }
   } else if (action.startsWith('hobby_')) {
-    if (action.startsWith('hobby_')) {
-      const hobby = action;
-      if (!user.hobbies) user.hobbies = [];
-      const hobbyIndex = user.hobbies.indexOf(hobby);
-      if (hobbyIndex === -1) {
-        user.hobbies.push(hobby);
-      } else {
-        user.hobbies.splice(hobbyIndex, 1);
-      }
-    
-
-      const newKeyboard = createHobbiesKeyboard(user.hobbies);
-      await bot.editMessageReplyMarkup({ inline_keyboard: newKeyboard.inline_keyboard }, { chat_id: chatId, message_id: callbackQuery.message?.message_id });
-      await bot.answerCallbackQuery(callbackQuery.id, { text: 'Ваши увлечения обновлены!' });
-    
-
-      await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
+    const hobby = action;
+    if (!user.hobbies) user.hobbies = [];
+    const hobbyIndex = user.hobbies.indexOf(hobby);
+    if (hobbyIndex === -1) {
+      user.hobbies.push(hobby);
+    } else {
+      user.hobbies.splice(hobbyIndex, 1);
     }
+
+    const newKeyboard = createHobbiesKeyboard(user.hobbies);
+    await bot.editMessageReplyMarkup({ inline_keyboard: newKeyboard.inline_keyboard }, { chat_id: chatId, message_id: callbackQuery.message?.message_id });
+    await bot.answerCallbackQuery(callbackQuery.id, { text: 'Ваши увлечения обновлены!' });
+
+    await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
   } else if (action === 'hobbies_done') {
     delete userSetupStages[chatId];
     await bot.editMessageText(`Отлично! Мы сохранили ваши данные. Пока рекомендации грузятся, я могу отвечать на твои вопросы 😄 Можешь спросить про ивенты или в целом вопросы, которые тебя интересуют!
@@ -328,6 +315,9 @@ A если ожидание превысило 5 минут, нажмите за
       user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
       console.log('DB RECOMMENDATIONS', user.recommendations.length);
       await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations, lastRecommendationUpdate: new Date(), lastRecommendationIndex: 0 });
+
+      // Лог перед отправкой сообщения "Ваши ивенты готовы!"
+      console.log(`Отправка сообщения 'Ваши ивенты готовы!' пользователю ${user.userName}`);
 
       await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
         reply_markup: {
@@ -429,7 +419,6 @@ A если ожидание превысило 5 минут, нажмите за
         { chat_id: chatId, message_id: callbackQuery.message?.message_id }
       );
 
-
       await sendNextGeneratedEvent(chatId);
     }
   } else if (action.startsWith('next_event')) {
@@ -530,8 +519,6 @@ export const sendEventList = async (chatId, events, startIndex = 0, step = 5) =>
     keyboard.push({ text: 'Следующие ➡️', callback_data: `event_list_${nextIndex}` });
   }
 
-  // console.log('message', message);
-  
   await bot.sendMessage(chatId, message, {
     parse_mode: 'Markdown',
     reply_markup: {
@@ -539,5 +526,3 @@ export const sendEventList = async (chatId, events, startIndex = 0, step = 5) =>
     }
   });
 };
-
-

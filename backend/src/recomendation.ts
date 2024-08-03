@@ -56,6 +56,7 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
   If you are unable to find any events that meet the user's criteria, return an empty array.
   Use date in format "DD.MM.YYYY".
   Don't create new events, use only provided events.
+  Give answer only on russian language.
 
   Example:
   [
