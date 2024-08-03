@@ -88,28 +88,31 @@ export const initHandlers = (bot: TelegramBot) => {
       return;
     }
 
-    const { stage, field } = userSetupStages[chatId];
+    const userStage = userSetupStages[chatId];
+    if (userStage) {
+      const { stage, field } = userStage;
 
-    switch (field) {
-      case 'budget':
-        user.spendingLimit = parseInt(userText!);
-        await User.findByIdAndUpdate(user._id, { spendingLimit: user.spendingLimit });
-        userSetupStages[chatId] = { stage: 1, field: 'hobbies' };
-        await bot.sendMessage(chatId, 'Ваш бюджет сохранен. Теперь выберите ваши увлечения:', {
-          reply_markup: createHobbiesKeyboard([])
-        });
-        break;
-      case 'hobbies':
-        user.hobbies = userText!.split(',').map(item => item.trim());
-        await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
-        delete userSetupStages[chatId];
-        await bot.sendMessage(chatId, 'Спасибо! Ваши данные сохранены. Мы готовим для вас ивенты под ваши предпочтения, подождите немножко, скоро мы отправим сообщение! Если ожидание превысило 5 минут, нажмите заново /start.');
-        break;
-      default:
-        break;
+      switch (field) {
+        case 'budget':
+          user.spendingLimit = parseInt(userText!);
+          await User.findByIdAndUpdate(user._id, { spendingLimit: user.spendingLimit });
+          userSetupStages[chatId] = { stage: 1, field: 'hobbies' };
+          await bot.sendMessage(chatId, 'Ваш бюджет сохранен. Теперь выберите ваши увлечения:', {
+            reply_markup: createHobbiesKeyboard([])
+          });
+          break;
+        case 'hobbies':
+          user.hobbies = userText!.split(',').map(item => item.trim());
+          await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
+          delete userSetupStages[chatId];
+          await bot.sendMessage(chatId, 'Спасибо! Ваши данные сохранены. Мы готовим для вас ивенты под ваши предпочтения, подождите немножко, скоро мы отправим сообщение! Если ожидание превысило 5 минут, нажмите заново /start.');
+          break;
+        default:
+          break;
+      }
     }
 
-    if (!field) {
+    if (!userStage) {
       try {
         const events = await EventModel.find();
         const CHUNK_SIZE = 20;
@@ -152,3 +155,4 @@ export const initHandlers = (bot: TelegramBot) => {
     }
   });
 };
+
