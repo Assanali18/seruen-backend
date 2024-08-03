@@ -258,6 +258,148 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
   const user = await User.findOne({ chatId });
   if (!user) return;
 
+  if (action.startsWith('budget_')) {
+    const budget = parseInt(action.replace('budget_', ''));
+    user.spendingLimit = budget;
+    await User.findByIdAndUpdate(user._id, { spendingLimit: budget });
+
+    if (user.hobbies && user.hobbies.length > 0) {
+      delete userSetupStages[chatId];
+      await bot.editMessageText('Ваш бюджет сохранен.', {
+        chat_id: chatId,
+        message_id: callbackQuery.message?.message_id,
+      });
+    } else {
+
+      userSetupStages[chatId] = { stage: 0, field: 'hobbies' };
+      await bot.editMessageText('Ваш бюджет сохранен. Пожалуйста, выберите ваши увлечения:', {
+        chat_id: chatId,
+        message_id: callbackQuery.message?.message_id,
+        reply_markup: createHobbiesKeyboard([])
+      });
+    }
+  } else if (action.startsWith('hobby_')) {
+    if (action.startsWith('hobby_')) {
+      const hobby = action;
+      if (!user.hobbies) user.hobbies = [];
+      const hobbyIndex = user.hobbies.indexOf(hobby);
+      if (hobbyIndex === -1) {
+        user.hobbies.push(hobby);
+      } else {
+        user.hobbies.splice(hobbyIndex, 1);
+      }
+    
+
+      const newKeyboard = createHobbiesKeyboard(user.hobbies);
+      await bot.editMessageReplyMarkup({ inline_keyboard: newKeyboard.inline_keyboard }, { chat_id: chatId, message_id: callbackQuery.message?.message_id });
+      await bot.answerCallbackQuery(callbackQuery.id, { text: 'Ваши увлечения обновлены!' });
+    
+
+      await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
+    }
+  } else if (action === 'hobbies_done') {
+    delete userSetupStages[chatId];
+    await bot.editMessageText(`Отлично! Мы сохранили ваши данные. Пока рекомендации грузятся, я могу отвечать на твои вопросы 😄 Можешь спросить про ивенты или в целом вопросы, которые тебя интересуют!
+A если ожидание превысило 5 минут, нажмите заново /start.`, 
+        { chat_id: chatId, message_id: callbackQuery.message?.message_id });
+    await bot.sendMessage(chatId, 'Привет! Чем могу помочь?');
+    // Запуск получения рекомендаций
+    try {
+      const events = await EventModel.find();
+      const CHUNK_SIZE = 20;
+      const eventChunks = getEventChunks(events, CHUNK_SIZE);
+      const userRecomendation: { title: string; date: string; venue: string; ticketLink: string; message: string; score: number }[] = [];
+
+      user.lastRecommendationIndex = 0;
+
+      for (let i = 0; i < eventChunks.length; i++) {
+        const chunk = eventChunks[i];
+        const userSession = await User.findOne({ chatId });
+        if (userSession?.stopSession) {
+          return;
+        }
+
+        const recommendations = await getRecommendations(chunk, user);
+        userRecomendation.push(...recommendations);
+
+        console.log("USERRECOMMENDATIONS", userRecomendation.length);
+      }
+
+      user.recommendations = userRecomendation.sort((a, b) => b.score - a.score);
+      console.log('DB RECOMMENDATIONS', user.recommendations.length);
+      await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations, lastRecommendationUpdate: new Date(), lastRecommendationIndex: 0 });
+
+      await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "Let's goo 🚀", callback_data: 'lets_goo' }, { text: "Избранные ивенты 🌟", callback_data: 'favorite_events' }],
+            [{ text: "Мои данные 📚", callback_data: 'my_data' }]
+          ]
+        }
+      });
+
+    } catch (error) {
+      console.error(`Ошибка при получении рекомендаций для chatId ${chatId}:`, error);
+      await bot.sendMessage(chatId, '❌ Извините, произошла ошибка при получении рекомендаций. Свяжитесь с @us_sun');
+    }
+  } else if (action === 'change_budget') {
+    userSetupStages[chatId] = { stage: 0, field: 'budget' };
+    await bot.sendMessage(chatId, 'Пожалуйста, выберите ваш новый бюджет:', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '0 - 5000 тенге', callback_data: 'budget_5000' }, { text: '5000 - 10000 тенге', callback_data: 'budget_10000' }],
+          [{ text: '10000 - 20000 тенге', callback_data: 'budget_20000' }, { text: '20000 - 30000 тенге', callback_data: 'budget_30000' }],
+          [{ text: '30000 - 40000 тенге', callback_data: 'budget_40000' }, { text: '40000 - 50000 тенге', callback_data: 'budget_50000' }],
+          [{ text: '50000+ тенге', callback_data: 'budget_100000' }]
+        ]
+      }
+    });
+  } else if (action === 'change_hobbies') {
+    userSetupStages[chatId] = { stage: 0, field: 'hobbies' };
+    await bot.sendMessage(chatId, 'Пожалуйста, выберите ваши новые увлечения:', {
+      reply_markup: createHobbiesKeyboard(user.hobbies || [])
+    });
+  } else if (action === 'view_preferences') {
+    const preferencesMessage = `Ваши текущие данные:
+    
+Имя пользователя: ${user.userName}
+Бюджет: ${user.spendingLimit || 'не указан'}
+Увлечения: ${user.hobbies?.join(', ') || 'не указаны'}`
+;
+    await bot.sendMessage(chatId, preferencesMessage);
+  } else if (action === 'lets_goo') {
+    await sendNextEvent(chatId);
+  } else if (action === 'favorite_events') {
+    if (user.likedEvents && user.likedEvents.length > 0) {
+      for (const likedEvent of user.likedEvents) {
+        if (likedEvent.message) {
+          await bot.sendMessage(chatId, likedEvent.message, {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "Купить билеты", url: likedEvent.ticketLink }]
+              ]
+            }
+          });
+        }
+      }
+    } else {
+      await bot.sendMessage(chatId, 'У вас нет избранных ивентов.');
+    }
+  } else if (action === 'my_data') {
+    await bot.sendMessage(chatId, `Ваши текущие данные:
+    
+Имя пользователя: ${user.userName}
+Бюджет: ${user.spendingLimit || 'не указан'}
+Увлечения: ${user.hobbies?.join(', ') || 'не указаны'}`
+, {
+  reply_markup: {
+    inline_keyboard: [
+      [{ text: "Изменить бюджет 💰", callback_data: 'change_budget' }, { text: "Изменить увлечения 🎨", callback_data: 'change_hobbies' }],
+    ]
+  }
+});
+  }
+
   if (action.startsWith('like_event')) {
     const ticketLink = decodeURIComponent(action.replace('like_event_', ''));
     const event = await EventModel.findOne({ ticketLink: new RegExp(ticketLink) });
@@ -266,13 +408,12 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
       user.likedEvents.push({ title: event.title, date: event.date || '', message: callbackQuery.message?.text || '', ticketLink: event.ticketLink || '' });
       await User.findByIdAndUpdate(user._id, { likedEvents: user.likedEvents });
 
-      // Заменяем сообщение на уведомление о добавлении в избранные
+    
       await bot.editMessageText(
         `Мероприятие "${event.title}" сохранено в избранные. Чтобы посмотреть, введите команду /view_favorites.`,
         { chat_id: chatId, message_id: callbackQuery.message?.message_id }
       );
 
-      // Отправляем следующее мероприятие
       await sendNextEvent(chatId);
     }
   } else if (action.startsWith('like_generated_event')) {
@@ -283,21 +424,20 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
       user.likedEvents.push({ title: event.title, date: event.date || '', message: callbackQuery.message?.text || '', ticketLink: event.ticketLink || '' });
       await User.findByIdAndUpdate(user._id, { likedEvents: user.likedEvents });
 
-      // Заменяем сообщение на уведомление о добавлении в избранные
       await bot.editMessageText(
         `Мероприятие "${event.title}" сохранено в избранные. Чтобы посмотреть, введите команду /view_favorites.`,
         { chat_id: chatId, message_id: callbackQuery.message?.message_id }
       );
 
-      // Отправляем следующее сгенерированное мероприятие
+
       await sendNextGeneratedEvent(chatId);
     }
   } else if (action.startsWith('next_event')) {
-    // Удаляем предыдущее сообщение и отправляем следующее мероприятие
+
     await bot.deleteMessage(chatId, callbackQuery.message?.message_id?.toString() || '');
     await sendNextEvent(chatId);
   } else if (action.startsWith('next_generated_event')) {
-    // Удаляем предыдущее сообщение и отправляем следующее сгенерированное мероприятие
+
     await bot.deleteMessage(chatId, callbackQuery.message?.message_id?.toString() || '');
     await sendNextGeneratedEvent(chatId);
   }else if (action.startsWith('dislike_event')) {
