@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { Event } from './types';
 import User from './user/models/User';
+import moment from 'moment-timezone';
 import 'dotenv/config';
 
 const openai = new OpenAI({
@@ -19,12 +20,15 @@ export const getEventChunks = (events: Event[], chunkSize: number): Event[][] =>
 };
 
 export const getRecommendations = async (chunk: Event[], userPreferences: { spendingLimit?: number; hobbies?: string[]; userName?: string; userPrompt?: string; likedEvents?: { title: string; date: string; message: string; ticketLink: string; }[]; dislikedEvents?: { title: string; date: string; message: string; ticketLink: string; }[] }): Promise<{title: string; date: string; venue: string; ticketLink: string; message: string; score: number }[]> => {
-  const currentDate = new Date().toISOString().split('T')[0]; 
+  const currentDate = moment().tz('Asia/Almaty').format('YYYY-MM-DD'); // Текущая дата в Казахстане
+  const currentTime = moment().tz('Asia/Almaty').format('HH:mm'); // Текущее время в Казахстане
+  const currentDay = moment().tz('Asia/Almaty').format('dddd'); // Текущий день недели
+
+  console.log(`Current Date: ${currentDate}, Time: ${currentTime}, Day: ${currentDay}`);
   
   chunk.forEach(event => {
     console.log("Title : ", event.title, "Price : ", event.price, "Date : ", event.date);
   });
-  
 
   const systemPrompt = `
     I have provided a chunk of up to 10 events.
@@ -66,6 +70,7 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
     ]
   `;
 
+
   console.log('Sending message for chunk...');
 
   try {
@@ -76,35 +81,27 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
         { role: 'user', content: userPreferences.userPrompt || '' },
       ],
     });
-
+  
     let responseText = response.choices[0].message.content || '';
     console.log('Response:', responseText);
-
-    // Clean and format the response text to ensure proper JSON formatting
+  
+    // Убедимся, что удаляем не только управляющие символы, но и любые другие незначительные.
     responseText = responseText.replace(/```json|```/g, '').trim();
-    responseText = responseText.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
-      if (char === '\n' || char === '\t') {
-        return char;
-      }
-      return ' ';
-    });
-    responseText = responseText.replace(/\\n/g, '\\n').replace(/\\r/g, '\\r').replace(/\\t/g, '\\t');
-
-    // console.log('Clean Response:', responseText);
-
+    responseText = responseText.replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ');
+  
     const parsedResponse = JSON.parse(responseText);
-
+  
     if (Array.isArray(parsedResponse)) {
       return parsedResponse;
     } else {
       console.warn('Unexpected response format:', parsedResponse);
       return [];
     }
-
   } catch (error) {
     console.error('Error during communication or parsing:', error);
     return [];
   }
+  
 }
 
 const removeDuplicates = (recommendations) => {

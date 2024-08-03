@@ -6,6 +6,7 @@ import { OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME } from './config'
 import bot from './bot';
 import { text } from 'stream/consumers';
 import { getRecommendations } from './recomendation';
+import moment from 'moment-timezone';
 
 const MAX_CALLBACK_DATA_LENGTH = 64;
 
@@ -34,13 +35,19 @@ export const getEmbedding = async (content: string | undefined, user: any): Prom
 };
 
 export const classifyAndEnhanceMessage = async (message: string): Promise<{ isRelated: boolean | undefined, response: string | undefined }> => {
-  const currentDate = new Date().toISOString().split('T')[0];
+  const currentDate = moment().tz('Asia/Almaty').format('YYYY-MM-DD');
+  const currentTime = moment().tz('Asia/Almaty').format('HH:mm');
+  const currentDay = moment().tz('Asia/Almaty').format('dddd');
 
   const systemPrompt = `Вы являетесь помощником по рекомендациям мероприятий в Алматы, разработчик которого является Уштаев Асанали, вот его телеграм: @us_sun(если они спросят), инстаграм: us_a.sun. . В векторной базе данных содержатся события и мероприятия, происходящие в Алматы. Если пользователь просит рекомендации по мероприятиям, ответьте JSON-объектом {"isRelated": true, "response": "улучшенный запрос для векторной базы данных"}. Если нет, ответьте JSON-объектом {"isRelated": false, "response": "подходящий ответ"}.
 
-        Если пользователь спрашивает о мероприятиях на конкретные даты или упоминает такие термины, как "завтра", определите точную дату, на которую он ссылается, и включите ее в улучшенный запрос добавив туда: "сегодняшняя дата ${currentDate}". В таких случаях находи мероприятия строго по дате.
+        Если пользователь спрашивает о мероприятиях на конкретные даты или упоминает такие термины, как "завтра", "выходные", "на следующей неделе", "послезавтра", определите точную дату, на которую он ссылается, и включите ее в улучшенный запрос добавив туда: "сегодняшняя дата ${currentDate}, сегоднящний день ${currentDay}". В таких случаях находи мероприятия строго по дате.
 
         Не включайте пустые поля в ответ JSON.
+
+        Текущая дата: ${currentDate}
+        Текущее время: ${currentTime}
+        Текущий день недели: ${currentDay}
 
         Пример 1:
         Пользователь: "Можете порекомендовать какие-нибудь мероприятия в Алматы на этих выходных?"
@@ -97,25 +104,7 @@ export const sendNextEvent = async (chatId: number) => {
     return;
   }
 
-  const currentDate = new Date();
-  const lastUpdatedDate = new Date(user.lastRecommendationUpdate || 0);
-  console.log(lastUpdatedDate);
-  
-
-  const diffTime = Math.abs(currentDate.getTime() - lastUpdatedDate.getTime());
-  const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
-
-  if (diffHours > 24) {
-    await bot.sendMessage(chatId, 'Ваши рекомендации устарели. Пожалуйста, обновите их, используя команду /start.');
-    return;
-  }
-
   if (user.stopSession) {
-    return;
-  }
-
-  const chatExists = await checkChatExistence(Number(user.chatId));
-  if (!chatExists) {
     return;
   }
 
@@ -137,6 +126,7 @@ export const sendNextEvent = async (chatId: number) => {
       ]
     }
   });
+
   user.lastRecommendationIndex = (user.lastRecommendationIndex ?? 0) + 1;
   await User.findByIdAndUpdate(user._id, { lastRecommendationIndex: user.lastRecommendationIndex });
 };
@@ -171,6 +161,7 @@ export const sendNextGeneratedEvent = async (chatId: number) => {
       ]
     }
   });
+
   user.lastGeneratedPostIndex = (user.lastGeneratedPostIndex ?? 0) + 1;
   await User.findByIdAndUpdate(user._id, { lastGeneratedPostIndex: user.lastGeneratedPostIndex });
 };

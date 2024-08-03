@@ -22,6 +22,8 @@ class UserController {
   getUserRecommendations = async (req: Request, res: Response) => {
     try {
       const { username } = req.params;
+      console.log('Username:', username);
+      
       const recommendations = await this.userService.getUserRecommendations(username);
       if (recommendations) {
         res.status(200).json(recommendations);
