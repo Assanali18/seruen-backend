@@ -37,7 +37,7 @@ export const initHandlers = (bot: TelegramBot) => {
       return;
     }
 
-    if (!(chatId in userSetupStages)) {
+    if (!(chatId in userSetupStages) && userText !== '/start') {
       try {
         bot.sendChatAction(chatId, 'typing');
         const classificationResult = await classifyAndEnhanceMessage(userText);
