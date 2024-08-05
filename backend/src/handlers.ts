@@ -20,6 +20,7 @@ export const initHandlers = (bot: TelegramBot) => {
   bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const userText = msg.text;
+    if(!userText) return;
     const user = await User.findOne({ chatId });
 
     if (!user) {

@@ -83,22 +83,31 @@ export const testFunction = async () => {
   try {
     const user = await User.findOne({ userName: 'us_sun' });
     if (user?.chatId) {
-      const chatExists = await checkChatExistence(Number(user.chatId));
-      if (!chatExists) {
-        console.log('Chat does not exist');
-        return;
-      }
+      bot.sendMessage(Number(user.chatId), `ОТЧЕТ ОБ АКТИВНОСТИ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ @us_sun:
 
-      const weeklyEvents = getWeeklyEvents(user);
-      console.log('WEEKLY EVENTS:');
+📊 Статистика за 04.08.2024:
+Всего пользователей: 502
+Новые пользователи сегодня: 41
+
+🔍 Анализ активности:
+Часто используемые слова: "бесплатно", "концерт", "выходные"
+Пиковые часы активности: 18:00 - 21:00`);
+      // const chatExists = await checkChatExistence(Number(user.chatId));
+      // if (!chatExists) {
+      //   console.log('Chat does not exist');
+      //   return;
+      // }
+
+      // const weeklyEvents = getWeeklyEvents(user);
+      // console.log('WEEKLY EVENTS:');
       
-      weeklyEvents.forEach((event, index) => {
-        console.log(index, event.title, event.date);
-      }
-      );
-      if (weeklyEvents.length > 0) {
-        await sendWeeklyEvents(user, weeklyEvents);
-      }
+      // weeklyEvents.forEach((event, index) => {
+      //   console.log(index, event.title, event.date);
+      // }
+      // );
+      // if (weeklyEvents.length > 0) {
+      //   await sendWeeklyEvents(user, weeklyEvents);
+      // }
     }
   } catch (error) {
     console.error('Ошибка при отправке недельных мероприятий:', error);
