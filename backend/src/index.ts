@@ -32,7 +32,7 @@ app.use(cors(corsOptions));
 app.use('/api', globalRouter);
 
 // deleteEventsFromPinecone('sxodim');
-// deleteEventsFromPinecone('ticketon-yandex');
+// // deleteEventsFromPinecone('ticketon-yandex');
 // addEventsToPinecone();
 
 // testFunction();

@@ -84,6 +84,7 @@ export const deleteEventsFromPinecone = async (source: string) => {
     console.log("Size of eventIds: ", eventIds.length);
     
     await index.deleteMany(eventIds);
+    // await index.deleteAll();
 
     console.log('Events successfully deleted from Pinecone.');
   } catch (error) {

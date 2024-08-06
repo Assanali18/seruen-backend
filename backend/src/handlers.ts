@@ -5,6 +5,7 @@ import EventModel from './event/models/Event';
 import { classifyAndEnhanceMessage, getEmbedding, sendNextEvent, sendNextGeneratedEvent, availableCommands, userSetupStages, index, getEventChunks } from './util';
 import { getRecommendations } from './recomendation';
 import { createHobbiesKeyboard } from './keyboard';
+import { parse } from 'path';
 
 export const initHandlers = (bot: TelegramBot) => {
   bot.onText(/\/start/, (msg) => handleStart(bot, msg));
@@ -141,14 +142,23 @@ export const initHandlers = (bot: TelegramBot) => {
         console.log('DB RECOMMENDATIONS', user.recommendations);
         await User.findByIdAndUpdate(user._id, { recommendations: user.recommendations, lastRecommendationUpdate: new Date(), lastRecommendationIndex: 0 });
 
-        await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "Let's goo 🚀", callback_data: 'lets_goo' }, { text: "Избранные ивенты 🌟", callback_data: 'favorite_events' }],
-              [{ text: "Мои данные 📚", callback_data: 'my_data' }]
-            ]
+        try{
+          const chatMember = await bot.getChatMember(chatId, bot.id);
+          if(chatMember.status === 'left' || chatMember.status === 'kicked'){
+            console.log(`Пользователь ${chatId} заблокировал бота или покинул чат.`);
+            return;
           }
-        });
+          await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "Let's goo 🚀", callback_data: 'lets_goo' }, { text: "Избранные ивенты 🌟", callback_data: 'favorite_events' }],
+                [{ text: "Мои данные 📚", callback_data: 'my_data' }]
+              ]
+            }
+          });
+      } catch (error) {
+        console.error(`Ошибка при отправке рекомендаций для chatId ${chatId}:`, error);
+      } 
       } catch (error) {
         console.error(`Ошибка при получении рекомендаций для chatId ${chatId}:`, error);
         await bot.sendMessage(chatId, '❌ Извините, произошла ошибка при получении рекомендаций.');

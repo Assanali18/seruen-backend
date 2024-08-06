@@ -281,7 +281,11 @@ export const handleCallbackQuery = async (bot: TelegramBot, callbackQuery: Teleg
 
     const newKeyboard = createHobbiesKeyboard(user.hobbies);
     await bot.editMessageReplyMarkup({ inline_keyboard: newKeyboard.inline_keyboard }, { chat_id: chatId, message_id: callbackQuery.message?.message_id });
-    await bot.answerCallbackQuery(callbackQuery.id, { text: 'Ваши увлечения обновлены!' });
+    try{
+      await bot.answerCallbackQuery(callbackQuery.id, { text: 'Ваши увлечения обновлены!' });
+    }catch(e:any){
+      console.error('error answering callback query', e.message);
+    }
 
     await User.findByIdAndUpdate(user._id, { hobbies: user.hobbies });
   } else if (action === 'hobbies_done') {
@@ -319,17 +323,26 @@ A если ожидание превысило 5 минут, нажмите за
       // Лог перед отправкой сообщения "Ваши ивенты готовы!"
       console.log(`Отправка сообщения 'Ваши ивенты готовы!' пользователю ${user.userName}`);
 
-      await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "Let's goo 🚀", callback_data: 'lets_goo' }, { text: "Избранные ивенты 🌟", callback_data: 'favorite_events' }],
-            [{ text: "Мои данные 📚", callback_data: 'my_data' }]
-          ]
+      try{
+        const chatMember = await bot.getChatMember(chatId, bot.id);
+        if(chatMember.status === 'left' || chatMember.status === 'kicked'){
+          console.log('User left the chat');
+          return;
         }
-      });
+        await bot.sendMessage(chatId, 'Ваши ивенты готовы! Давайте сделаем ваш отдых интересней!', {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "Let's goo 🚀", callback_data: 'lets_goo' }, { text: "Избранные ивенты 🌟", callback_data: 'favorite_events' }],
+              [{ text: "Мои данные 📚", callback_data: 'my_data' }]
+            ]
+          }
+        });
+      }catch(e:any){
+        console.error('error sending message', e.message);
+      }
 
-    } catch (error) {
-      console.error(`Ошибка при получении рекомендаций для chatId ${chatId}:`, error);
+    } catch (error:any) {
+      console.error(`Ошибка при получении рекомендаций для chatId ${chatId}:`, error.message);
       await bot.sendMessage(chatId, '❌ Извините, произошла ошибка при получении рекомендаций. Свяжитесь с @us_sun');
     }
   } else if (action === 'change_budget') {
@@ -423,11 +436,19 @@ A если ожидание превысило 5 минут, нажмите за
     }
   } else if (action.startsWith('next_event')) {
 
-    await bot.deleteMessage(chatId, callbackQuery.message?.message_id?.toString() || '');
+    try{
+      await bot.deleteMessage(chatId, callbackQuery.message?.message_id?.toString() || '');
+    }catch(e:any){
+      console.error('error deleting message', e.message);
+    }
     await sendNextEvent(chatId);
   } else if (action.startsWith('next_generated_event')) {
 
-    await bot.deleteMessage(chatId, callbackQuery.message?.message_id?.toString() || '');
+    try{
+      await bot.deleteMessage(chatId, callbackQuery.message?.message_id?.toString() || '');
+    }catch(e:any){
+      console.error('error deleting message', e.message);
+    }
     await sendNextGeneratedEvent(chatId);
   }else if (action.startsWith('dislike_event')) {
     const ticketLink = decodeURIComponent(action.replace('dislike_event_', ''));
@@ -436,13 +457,21 @@ A если ожидание превысило 5 минут, нажмите за
       user.dislikedEvents = user.dislikedEvents || [];
       user.dislikedEvents.push({ title: event.title, date: event.date || '', message: callbackQuery.message?.text || '', ticketLink: event.ticketLink || '' });
       await User.findByIdAndUpdate(user._id, { dislikedEvents: user.dislikedEvents });
-      await bot.answerCallbackQuery(callbackQuery.id, { text: 'Мы реже будем предлагать подобные ивенты.' });
+      try{
+        await bot.answerCallbackQuery(callbackQuery.id, { text: 'Мы реже будем предлагать подобные ивенты.' });
+      }catch(error: any){
+        console.error('Error answering callback query', error.message);
+      }
       await bot.deleteMessage(chatId, callbackQuery.message?.message_id || '');
     }
     await sendNextEvent(chatId);
   }
 
-  bot.answerCallbackQuery(callbackQuery.id);
+  try{
+    bot.answerCallbackQuery(callbackQuery.id);
+  }catch(e:any){
+    console.error('error answering callback query', e.message);
+  }
 };
 
 export const handleMenuCommand = async (bot: TelegramBot, msg: TelegramBot.Message) => {

@@ -81,36 +81,29 @@ cron.schedule('0 9 * * 1', async () => {
 
 export const testFunction = async () => {
   try {
-    const user = await User.findOne({ userName: 'us_sun' });
-    if (user?.chatId) {
-      bot.sendMessage(Number(user.chatId), `ОТЧЕТ ОБ АКТИВНОСТИ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ @us_sun:
+    const users = await User.find();
+    const currentDate = new Date();
 
-📊 Статистика за 04.08.2024:
-Всего пользователей: 502
-Новые пользователи сегодня: 41
+    for (const user of users) {
+      if (user.likedEvents) {
+        const updatedLikedEvents: { title: string; date: string; message: string; ticketLink: string; }[] = []; 
+        console.log(`Liked events of ${user.userName} before updating`, user.likedEvents.length);
 
-🔍 Анализ активности:
-Часто используемые слова: "бесплатно", "концерт", "выходные"
-Пиковые часы активности: 18:00 - 21:00`);
-      // const chatExists = await checkChatExistence(Number(user.chatId));
-      // if (!chatExists) {
-      //   console.log('Chat does not exist');
-      //   return;
-      // }
-
-      // const weeklyEvents = getWeeklyEvents(user);
-      // console.log('WEEKLY EVENTS:');
-      
-      // weeklyEvents.forEach((event, index) => {
-      //   console.log(index, event.title, event.date);
-      // }
-      // );
-      // if (weeklyEvents.length > 0) {
-      //   await sendWeeklyEvents(user, weeklyEvents);
-      // }
+        
+        for (const likedEvent of user.likedEvents) {
+          const eventDate = new Date(likedEvent.date);
+          if (eventDate >= currentDate) {
+            updatedLikedEvents.push(likedEvent);
+          }
+        }
+        user.likedEvents = updatedLikedEvents;
+        await user.save();
+        console.log(`Liked events of ${user.userName} after updating`, user.likedEvents.length);
+      }
     }
+    console.log('Обновление списка понравившихся ивентов завершено.');
   } catch (error) {
-    console.error('Ошибка при отправке недельных мероприятий:', error);
+    console.error('Ошибка при обновлении списка понравившихся ивентов:', error);
   }
 };
 
