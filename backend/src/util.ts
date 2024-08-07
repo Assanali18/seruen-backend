@@ -104,6 +104,16 @@ export const sendNextEvent = async (chatId: number) => {
     return;
   }
 
+
+  const lastRecommendationUpdate = moment(user.lastRecommendationUpdate);
+  const now = moment();
+  const hoursPassed = now.diff(lastRecommendationUpdate, 'hours');
+
+  if (hoursPassed > 24) {
+    await bot.sendMessage(chatId, 'Ваши данные устарели. Пожалуйста, нажмите /start для обновления данных.');
+    return;
+  }
+
   if (user.stopSession) {
     return;
   }

@@ -53,11 +53,12 @@ export const getRecommendations = async (chunk: Event[], userPreferences: { spen
   Do not change the dates of the events. Use the provided dates exactly as they are.
   Discard any events that do not fit the user's preferences based on the provided criteria.
   Return the response as a valid array of objects, each with keys "title", "date", "venue", "ticketLink", "message", and "score" containing the formatted event details and relevance score.
-  If you are unable to find any events that meet the user's criteria, return an empty array.
   Use date in format "DD.MM.YYYY".
   Don't create new events, use only provided events.
   Give answer only on russian or kazakh language.
   If there is user's prompt, use it in the response and don't take attention on user's hobbies and budget.
+  If you can't find any events, return an empty array.
+  If the user prompt contains references to the "ИК" group, it means he is looking for "Ирина Кайратовна".
   
 
   Example:
